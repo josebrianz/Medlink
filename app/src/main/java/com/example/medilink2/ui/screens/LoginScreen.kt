@@ -12,7 +12,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -28,12 +27,11 @@ import com.example.medilink2.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CreateAccountScreen(
-    onBackToLogin: () -> Unit = {},
-    onAccountCreated: () -> Unit = {}
+fun LoginScreen(
+    onBackToOnboarding: () -> Unit = {},
+    onLoginSuccess: () -> Unit = {},
+    onNavigateToSignUp: () -> Unit = {}
 ) {
-    var fullName by remember { mutableStateOf("") }
-    var phoneNumber by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var errorMessage by remember { mutableStateOf<String?>(null) }
@@ -49,37 +47,21 @@ fun CreateAccountScreen(
         
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
-                text = "Create Account ",
+                text = "Welcome Back ",
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold
             )
-            Text("🏥", fontSize = 24.sp)
+            Text("👋", fontSize = 24.sp)
         }
         
         Text(
-            text = "Join MedFind to locate medicines near you",
+            text = "Sign in to continue finding medicines",
             color = TextSecondary,
             modifier = Modifier.padding(top = 8.dp)
         )
 
-        Spacer(modifier = Modifier.height(48.dp))
+        Spacer(modifier = Modifier.height(64.dp))
 
-        InputField(
-            label = "Full Name",
-            value = fullName,
-            onValueChange = { fullName = it },
-            placeholder = "John Doe",
-            icon = Icons.Outlined.Person
-        )
-        Spacer(modifier = Modifier.height(24.dp))
-        InputField(
-            label = "Phone Number",
-            value = phoneNumber,
-            onValueChange = { phoneNumber = it },
-            placeholder = "+256 700 000 000",
-            icon = Icons.Outlined.Call
-        )
-        Spacer(modifier = Modifier.height(24.dp))
         InputField(
             label = "Email",
             value = email,
@@ -105,19 +87,29 @@ fun CreateAccountScreen(
             )
         }
 
+        Spacer(modifier = Modifier.height(8.dp))
+        
+        Text(
+            text = "Forgot Password?",
+            color = TealPrimary,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.align(Alignment.End)
+        )
+
         Spacer(modifier = Modifier.weight(1f))
 
         Button(
             onClick = {
-                if (fullName.isNotBlank() && phoneNumber.isNotBlank() && email.isNotBlank() && password.isNotBlank()) {
+                if (email.isNotBlank() && password.isNotBlank()) {
                     isLoading = true
                     errorMessage = null
-                    UserManager.registerUser(fullName, phoneNumber, email, password) { success, message ->
+                    UserManager.loginUser(email, password) { success, message ->
                         isLoading = false
                         if (success) {
-                            onAccountCreated()
+                            onLoginSuccess()
                         } else {
-                            errorMessage = message ?: "Registration failed"
+                            errorMessage = message ?: "Invalid email or password"
                         }
                     }
                 } else {
@@ -134,22 +126,22 @@ fun CreateAccountScreen(
             if (isLoading) {
                 CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
             } else {
-                Text("Create Account", fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
+                Text("Sign In", fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
             }
         }
 
         Spacer(modifier = Modifier.height(16.dp))
 
         TextButton(
-            onClick = onBackToLogin,
+            onClick = onNavigateToSignUp,
             modifier = Modifier.align(Alignment.CenterHorizontally),
             enabled = !isLoading
         ) {
             Text(
                 text = buildAnnotatedString {
-                    append("Already have an account? ")
+                    append("Don't have an account? ")
                     withStyle(style = SpanStyle(color = TealPrimary, fontWeight = FontWeight.Bold, textDecoration = TextDecoration.Underline)) {
-                        append("Sign In")
+                        append("Sign Up")
                     }
                 },
                 fontSize = 14.sp
@@ -158,53 +150,10 @@ fun CreateAccountScreen(
     }
 }
 
-@Composable
-fun InputField(
-    label: String,
-    value: String,
-    onValueChange: (String) -> Unit,
-    placeholder: String,
-    icon: ImageVector,
-    isPassword: Boolean = false
-) {
-    var passwordVisible by remember { mutableStateOf(false) }
-
-    Column {
-        Text(text = label, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-        Spacer(modifier = Modifier.height(8.dp))
-        OutlinedTextField(
-            value = value,
-            onValueChange = onValueChange,
-            placeholder = { Text(placeholder, color = Color.Gray) },
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp),
-            leadingIcon = { Icon(icon, contentDescription = null, tint = Color.Gray) },
-            trailingIcon = if (isPassword) {
-                {
-                    IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                        Icon(
-                            imageVector = if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                            contentDescription = if (passwordVisible) "Hide password" else "Show password",
-                            tint = Color.Gray
-                        )
-                    }
-                }
-            } else null,
-            visualTransformation = if (isPassword && !passwordVisible) PasswordVisualTransformation() else VisualTransformation.None,
-            colors = TextFieldDefaults.colors(
-                focusedContainerColor = Color(0xFFF7F8F9),
-                unfocusedContainerColor = Color(0xFFF7F8F9),
-                focusedIndicatorColor = TealPrimary,
-                unfocusedIndicatorColor = Color.LightGray.copy(alpha = 0.5f)
-            )
-        )
-    }
-}
-
 @Preview(showBackground = true)
 @Composable
-fun CreateAccountPreview() {
+fun LoginPreview() {
     Medilink2Theme {
-        CreateAccountScreen()
+        LoginScreen()
     }
 }
