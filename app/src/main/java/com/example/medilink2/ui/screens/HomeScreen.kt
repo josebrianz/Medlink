@@ -31,7 +31,8 @@ data class Pharmacy(val name: String, val location: String, val distance: String
 @Composable
 fun HomeScreen(
     onNavigateToSearch: () -> Unit = {},
-    onNavigateToPharmacy: () -> Unit = {}
+    onNavigateToProfile: () -> Unit = {},
+    onNavigateToNavigate: () -> Unit = {}
 ) {
     val categories = listOf(
         Category("Pain Relief", Icons.Default.AddCircle, CategoryPainRelief),
@@ -52,7 +53,10 @@ fun HomeScreen(
         bottomBar = { 
             BottomNavigationBar(
                 currentScreen = "Home", 
-                onNavigateToSearch = onNavigateToSearch
+                onNavigateToHome = { /* Already here */ },
+                onNavigateToSearch = onNavigateToSearch,
+                onNavigateToProfile = onNavigateToProfile,
+                onNavigateToNavigate = onNavigateToNavigate
             ) 
         }
     ) { paddingValues ->
@@ -62,7 +66,9 @@ fun HomeScreen(
                 .padding(paddingValues)
                 .background(Background)
         ) {
-            item { HeaderSection() }
+            item { 
+                HeaderSection(onSearchClick = onNavigateToSearch) 
+            }
             
             item {
                 Column(modifier = Modifier.padding(16.dp)) {
@@ -83,19 +89,21 @@ fun HomeScreen(
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text("Recent Searches", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                     Spacer(modifier = Modifier.height(12.dp))
-                    FlowRow(
-                        mainAxisSpacing = 8.dp,
-                        crossAxisSpacing = 8.dp
-                    ) {
-                        recentSearches.forEach { search ->
-                            SuggestionChip(
-                                onClick = { },
-                                label = { Text(search) },
-                                shape = RoundedCornerShape(20.dp),
-                                colors = SuggestionChipDefaults.suggestionChipColors(
-                                    containerColor = Color.White
-                                )
-                            )
+                    // Simplified FlowRow replacement to avoid crash
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        recentSearches.chunked(2).forEach { chunk ->
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                chunk.forEach { search ->
+                                    SuggestionChip(
+                                        onClick = { onNavigateToSearch() },
+                                        label = { Text(search) },
+                                        shape = RoundedCornerShape(20.dp),
+                                        colors = SuggestionChipDefaults.suggestionChipColors(
+                                            containerColor = Color.White
+                                        )
+                                    )
+                                }
+                            }
                         }
                     }
                 }
@@ -108,22 +116,24 @@ fun HomeScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text("Nearby Pharmacies", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                    Text("See all", color = TealPrimary, fontWeight = FontWeight.SemiBold)
+                    Text(
+                        text = "See all", 
+                        color = TealPrimary, 
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.clickable { /* Handle See all */ }
+                    )
                 }
             }
 
             items(pharmacies) { pharmacy ->
-                PharmacyCard(
-                    pharmacy = pharmacy,
-                    onClick = onNavigateToPharmacy
-                )
+                PharmacyCard(pharmacy)
             }
         }
     }
 }
 
 @Composable
-fun HeaderSection() {
+fun HeaderSection(onSearchClick: () -> Unit = {}) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -157,15 +167,20 @@ fun HeaderSection() {
             OutlinedTextField(
                 value = "",
                 onValueChange = {},
+                readOnly = true,
                 placeholder = { Text("Search medicines, drugs...", color = Color.Gray) },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onSearchClick() },
+                enabled = false, // Set to false to make the whole box clickable for navigation
                 shape = RoundedCornerShape(28.dp),
                 leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null) },
                 colors = TextFieldDefaults.colors(
-                    focusedContainerColor = Color.White,
-                    unfocusedContainerColor = Color.White,
-                    focusedIndicatorColor = Color.Transparent,
-                    unfocusedIndicatorColor = Color.Transparent
+                    disabledContainerColor = Color.White,
+                    disabledIndicatorColor = Color.Transparent,
+                    disabledTextColor = Color.Black,
+                    disabledLeadingIconColor = Color.Gray,
+                    disabledPlaceholderColor = Color.Gray
                 )
             )
             Spacer(modifier = Modifier.height(8.dp))
@@ -179,7 +194,8 @@ fun CategoryItem(category: Category) {
         Box(
             modifier = Modifier
                 .size(64.dp)
-                .background(category.color, RoundedCornerShape(16.dp)),
+                .background(category.color, RoundedCornerShape(16.dp))
+                .clickable { /* Handle Category click */ },
             contentAlignment = Alignment.Center
         ) {
             Icon(category.icon, contentDescription = null, tint = TealPrimary, modifier = Modifier.size(28.dp))
@@ -190,15 +206,12 @@ fun CategoryItem(category: Category) {
 }
 
 @Composable
-fun PharmacyCard(
-    pharmacy: Pharmacy,
-    onClick: () -> Unit = {}
-) {
+fun PharmacyCard(pharmacy: Pharmacy) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp)
-            .clickable { onClick() },
+            .clickable { /* Handle Pharmacy click */ },
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
@@ -237,7 +250,9 @@ fun PharmacyCard(
 fun BottomNavigationBar(
     currentScreen: String,
     onNavigateToHome: () -> Unit = {},
-    onNavigateToSearch: () -> Unit = {}
+    onNavigateToSearch: () -> Unit = {},
+    onNavigateToNavigate: () -> Unit = {},
+    onNavigateToProfile: () -> Unit = {}
 ) {
     NavigationBar(
         containerColor = Color.White,
@@ -258,32 +273,16 @@ fun BottomNavigationBar(
         NavigationBarItem(
             icon = { Icon(Icons.Default.LocationOn, contentDescription = null) },
             label = { Text("Navigate") },
-            selected = false,
-            onClick = {}
+            selected = currentScreen == "Navigate",
+            onClick = onNavigateToNavigate
         )
         NavigationBarItem(
             icon = { Icon(Icons.Default.Person, contentDescription = null) },
             label = { Text("Profile") },
-            selected = false,
-            onClick = {}
+            selected = currentScreen == "Profile",
+            onClick = onNavigateToProfile
         )
     }
-}
-
-@Composable
-@OptIn(ExperimentalLayoutApi::class)
-fun FlowRow(
-    modifier: Modifier = Modifier,
-    mainAxisSpacing: androidx.compose.ui.unit.Dp = 0.dp,
-    crossAxisSpacing: androidx.compose.ui.unit.Dp = 0.dp,
-    content: @Composable () -> Unit
-) {
-    androidx.compose.foundation.layout.FlowRow(
-        modifier = modifier,
-        horizontalArrangement = Arrangement.spacedBy(mainAxisSpacing),
-        verticalArrangement = Arrangement.spacedBy(crossAxisSpacing),
-        content = { content() }
-    )
 }
 
 @Preview(showBackground = true)
