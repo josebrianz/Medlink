@@ -1,6 +1,7 @@
 package com.example.medilink2.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -29,7 +30,8 @@ data class Pharmacy(val name: String, val location: String, val distance: String
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
-    onNavigateToSearch: () -> Unit = {}
+    onNavigateToSearch: () -> Unit = {},
+    onNavigateToPharmacy: () -> Unit = {}
 ) {
     val categories = listOf(
         Category("Pain Relief", Icons.Default.AddCircle, CategoryPainRelief),
@@ -47,7 +49,12 @@ fun HomeScreen(
     )
 
     Scaffold(
-        bottomBar = { BottomNavigationBar(currentScreen = "Home", onNavigateToSearch = onNavigateToSearch) }
+        bottomBar = { 
+            BottomNavigationBar(
+                currentScreen = "Home", 
+                onNavigateToSearch = onNavigateToSearch
+            ) 
+        }
     ) { paddingValues ->
         LazyColumn(
             modifier = Modifier
@@ -106,7 +113,10 @@ fun HomeScreen(
             }
 
             items(pharmacies) { pharmacy ->
-                PharmacyCard(pharmacy)
+                PharmacyCard(
+                    pharmacy = pharmacy,
+                    onClick = onNavigateToPharmacy
+                )
             }
         }
     }
@@ -180,11 +190,15 @@ fun CategoryItem(category: Category) {
 }
 
 @Composable
-fun PharmacyCard(pharmacy: Pharmacy) {
+fun PharmacyCard(
+    pharmacy: Pharmacy,
+    onClick: () -> Unit = {}
+) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .clickable { onClick() },
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)

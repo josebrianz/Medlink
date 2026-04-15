@@ -9,14 +9,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import com.example.medilink2.ui.screens.CreateAccountScreen
-import com.example.medilink2.ui.screens.HomeScreen
-import com.example.medilink2.ui.screens.OnboardingScreen
-import com.example.medilink2.ui.screens.SearchScreen
+import com.example.medilink2.ui.screens.*
 import com.example.medilink2.ui.theme.Medilink2Theme
 
 enum class Screen {
-    Onboarding, Home, Search, CreateAccount
+    Onboarding, Home, Search, CreateAccount, PharmacyDetail
 }
 
 class MainActivity : ComponentActivity() {
@@ -44,10 +41,15 @@ fun MainApp() {
             onBackToLogin = { currentScreen = Screen.Onboarding }
         )
         Screen.Home -> HomeScreen(
-            onNavigateToSearch = { currentScreen = Screen.Search }
+            onNavigateToSearch = { currentScreen = Screen.Search },
+            onNavigateToPharmacy = { currentScreen = Screen.PharmacyDetail }
         )
         Screen.Search -> SearchScreen(
-            onNavigateToHome = { currentScreen = Screen.Home }
+            onNavigateToHome = { currentScreen = Screen.Home },
+            onNavigateToPharmacy = { currentScreen = Screen.PharmacyDetail }
+        )
+        Screen.PharmacyDetail -> PharmacyDetailScreen(
+            onBack = { currentScreen = Screen.Home }
         )
     }
 }

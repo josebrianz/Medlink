@@ -1,6 +1,7 @@
 package com.example.medilink2.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -32,7 +33,8 @@ data class SearchResult(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SearchScreen(
-    onNavigateToHome: () -> Unit = {}
+    onNavigateToHome: () -> Unit = {},
+    onNavigateToPharmacy: () -> Unit = {}
 ) {
     val results = listOf(
         SearchResult("MedPlus Pharmacy", "Kampala Road, Plot 23", "0.8 km", "UGX 3,000", "4.8", "9:00 PM", true),
@@ -76,7 +78,7 @@ fun SearchScreen(
                 contentPadding = PaddingValues(bottom = 16.dp)
             ) {
                 items(results) { result ->
-                    SearchResultCard(result)
+                    SearchResultCard(result, onClick = onNavigateToPharmacy)
                 }
             }
         }
@@ -84,11 +86,15 @@ fun SearchScreen(
 }
 
 @Composable
-fun SearchResultCard(result: SearchResult) {
+fun SearchResultCard(
+    result: SearchResult,
+    onClick: () -> Unit = {}
+) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .clickable { onClick() },
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
