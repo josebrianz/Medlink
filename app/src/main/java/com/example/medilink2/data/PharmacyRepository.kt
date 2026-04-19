@@ -23,7 +23,6 @@ class PharmacyRepository {
     }
 
     private fun getInventoryForPharmacy(pharmacyId: String): List<DrugItem> {
-        // This simulates the "Price retrieval" and "Inventory management" backend logic
         return listOf(
             DrugItem("Paracetamol", "Pain Relief", "UGX 3,000", true, "High"),
             DrugItem("Amoxicillin", "Antibiotic", "UGX 12,000", true, "Medium"),
@@ -31,7 +30,25 @@ class PharmacyRepository {
             DrugItem("Cetirizine", "Allergy", "UGX 4,000", true, "High"),
             DrugItem("Panadol Extra", "Pain Relief", "UGX 4,500", true, "Low"),
             DrugItem("Vitamin C", "Supplements", "UGX 15,000", true, "Medium"),
-            DrugItem("Metformin", "Diabetes", "UGX 8,000", true, "Low")
+            DrugItem("Metformin", "Diabetes", "UGX 8,000", true, "Low"),
+            DrugItem("Insulin Glargine", "Diabetes", "UGX 45,000", true, "Medium"),
+            DrugItem("Aspirin 81mg", "Heart", "UGX 2,500", true, "High"),
+            DrugItem("Atorvastatin", "Heart", "UGX 18,000", true, "Low"),
+            DrugItem("Lisinopril", "Heart", "UGX 10,000", true, "Medium"),
+            DrugItem("Salbutamol Inhaler", "General", "UGX 15,000", true, "High"),
+            DrugItem("Omeprazole", "General", "UGX 7,000", true, "Medium"),
+            DrugItem("Loratadine", "General", "UGX 3,500", true, "High"),
+            DrugItem("Diclofenac Gel", "Pain Relief", "UGX 12,000", true, "Medium"),
+            DrugItem("Azithromycin", "Antibiotic", "UGX 25,000", false, "Out of Stock"),
+            DrugItem("ORS Sachet", "General", "UGX 1,500", true, "High"),
+            DrugItem("Metronidazole", "Antibiotic", "UGX 6,000", true, "Medium"),
+            DrugItem("Amlodipine", "Heart", "UGX 14,000", true, "High"),
+            DrugItem("Ventolin Inhaler", "General", "UGX 22,000", true, "Low"),
+            DrugItem("Gaviscon Liquid", "General", "UGX 35,000", true, "Medium"),
+            DrugItem("Augustin 625mg", "Antibiotic", "UGX 30,000", true, "High"),
+            DrugItem("Folic Acid", "Supplements", "UGX 5,000", true, "High"),
+            DrugItem("Durex Condoms", "General", "UGX 10,000", true, "High"),
+            DrugItem("Piriton", "Allergy", "UGX 2,500", true, "Medium")
         )
     }
 }

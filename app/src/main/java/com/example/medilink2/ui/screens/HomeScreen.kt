@@ -13,7 +13,7 @@ import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Place
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -22,6 +22,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.medilink2.data.UserManager
 import com.example.medilink2.ui.theme.*
 
 data class Category(val name: String, val icon: ImageVector, val color: Color)
@@ -30,10 +31,20 @@ data class Pharmacy(val name: String, val location: String, val distance: String
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
-    onNavigateToSearch: () -> Unit = {},
+    onNavigateToSearch: (String?) -> Unit = {},
+    onNavigateToSeeAll: () -> Unit = {},
+    onNavigateToPharmacy: () -> Unit = {},
     onNavigateToProfile: () -> Unit = {},
     onNavigateToNavigate: () -> Unit = {}
 ) {
+    var userName by remember { mutableStateOf("User") }
+    
+    LaunchedEffect(Unit) {
+        UserManager.getCurrentUserName { name ->
+            userName = name
+        }
+    }
+
     val categories = listOf(
         Category("Pain Relief", Icons.Default.AddCircle, CategoryPainRelief),
         Category("Fever", Icons.Default.Face, CategoryFever),
@@ -54,7 +65,7 @@ fun HomeScreen(
             BottomNavigationBar(
                 currentScreen = "Home", 
                 onNavigateToHome = { /* Already here */ },
-                onNavigateToSearch = onNavigateToSearch,
+                onNavigateToSearch = { onNavigateToSearch(null) },
                 onNavigateToProfile = onNavigateToProfile,
                 onNavigateToNavigate = onNavigateToNavigate
             ) 
@@ -67,7 +78,10 @@ fun HomeScreen(
                 .background(Background)
         ) {
             item { 
-                HeaderSection(onSearchClick = onNavigateToSearch) 
+                HeaderSection(
+                    userName = userName,
+                    onSearchClick = { onNavigateToSearch(null) }
+                )
             }
             
             item {
@@ -79,7 +93,10 @@ fun HomeScreen(
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         categories.forEach { category ->
-                            CategoryItem(category)
+                            CategoryItem(
+                                category = category,
+                                onClick = { onNavigateToSearch(category.name) }
+                            )
                         }
                     }
                 }
@@ -89,13 +106,12 @@ fun HomeScreen(
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text("Recent Searches", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                     Spacer(modifier = Modifier.height(12.dp))
-                    // Simplified FlowRow replacement to avoid crash
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         recentSearches.chunked(2).forEach { chunk ->
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 chunk.forEach { search ->
                                     SuggestionChip(
-                                        onClick = { onNavigateToSearch() },
+                                        onClick = { onNavigateToSearch(search) },
                                         label = { Text(search) },
                                         shape = RoundedCornerShape(20.dp),
                                         colors = SuggestionChipDefaults.suggestionChipColors(
@@ -120,20 +136,26 @@ fun HomeScreen(
                         text = "See all", 
                         color = TealPrimary, 
                         fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.clickable { /* Handle See all */ }
+                        modifier = Modifier.clickable { onNavigateToSeeAll() }
                     )
                 }
             }
 
             items(pharmacies) { pharmacy ->
-                PharmacyCard(pharmacy)
+                PharmacyCard(
+                    pharmacy = pharmacy,
+                    onClick = onNavigateToPharmacy
+                )
             }
         }
     }
 }
 
 @Composable
-fun HeaderSection(onSearchClick: () -> Unit = {}) {
+fun HeaderSection(
+    userName: String,
+    onSearchClick: () -> Unit = {}
+) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -151,7 +173,7 @@ fun HeaderSection(onSearchClick: () -> Unit = {}) {
             ) {
                 Column {
                     Text("Good morning 👋", color = Color.White.copy(alpha = 0.8f), fontSize = 16.sp)
-                    Text("John Doe", color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+                    Text(userName, color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Bold)
                 }
                 Row {
                     IconButton(onClick = {}, modifier = Modifier.background(Color.White.copy(alpha = 0.1f), CircleShape)) {
@@ -172,7 +194,7 @@ fun HeaderSection(onSearchClick: () -> Unit = {}) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable { onSearchClick() },
-                enabled = false, // Set to false to make the whole box clickable for navigation
+                enabled = false,
                 shape = RoundedCornerShape(28.dp),
                 leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null) },
                 colors = TextFieldDefaults.colors(
@@ -189,13 +211,18 @@ fun HeaderSection(onSearchClick: () -> Unit = {}) {
 }
 
 @Composable
-fun CategoryItem(category: Category) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+fun CategoryItem(
+    category: Category,
+    onClick: () -> Unit = {}
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier.clickable { onClick() }
+    ) {
         Box(
             modifier = Modifier
                 .size(64.dp)
-                .background(category.color, RoundedCornerShape(16.dp))
-                .clickable { /* Handle Category click */ },
+                .background(category.color, RoundedCornerShape(16.dp)),
             contentAlignment = Alignment.Center
         ) {
             Icon(category.icon, contentDescription = null, tint = TealPrimary, modifier = Modifier.size(28.dp))
@@ -206,12 +233,15 @@ fun CategoryItem(category: Category) {
 }
 
 @Composable
-fun PharmacyCard(pharmacy: Pharmacy) {
+fun PharmacyCard(
+    pharmacy: Pharmacy,
+    onClick: () -> Unit = {}
+) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp)
-            .clickable { /* Handle Pharmacy click */ },
+            .clickable { onClick() },
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)

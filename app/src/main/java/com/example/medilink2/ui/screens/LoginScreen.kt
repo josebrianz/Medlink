@@ -101,10 +101,11 @@ fun LoginScreen(
 
         Button(
             onClick = {
-                if (email.isNotBlank() && password.isNotBlank()) {
+                val trimmedEmail = email.trim()
+                if (trimmedEmail.isNotBlank() && password.isNotBlank()) {
                     isLoading = true
                     errorMessage = null
-                    UserManager.loginUser(email, password) { success, message ->
+                    UserManager.loginUser(trimmedEmail, password) { success, message ->
                         isLoading = false
                         if (success) {
                             onLoginSuccess()

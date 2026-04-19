@@ -51,4 +51,17 @@ object UserManager {
                 }
             }
     }
+
+    fun getCurrentUserName(onResult: (String) -> Unit) {
+        val userId = auth.currentUser?.uid
+        if (userId != null) {
+            database.child(userId).child("fullName").get().addOnSuccessListener {
+                onResult(it.value as? String ?: "User")
+            }.addOnFailureListener {
+                onResult("User")
+            }
+        } else {
+            onResult("Guest")
+        }
+    }
 }

@@ -109,10 +109,11 @@ fun CreateAccountScreen(
 
         Button(
             onClick = {
-                if (fullName.isNotBlank() && phoneNumber.isNotBlank() && email.isNotBlank() && password.isNotBlank()) {
+                val trimmedEmail = email.trim()
+                if (fullName.isNotBlank() && phoneNumber.isNotBlank() && trimmedEmail.isNotBlank() && password.isNotBlank()) {
                     isLoading = true
                     errorMessage = null
-                    UserManager.registerUser(fullName, phoneNumber, email, password) { success, message ->
+                    UserManager.registerUser(fullName, phoneNumber, trimmedEmail, password) { success, message ->
                         isLoading = false
                         if (success) {
                             onAccountCreated()

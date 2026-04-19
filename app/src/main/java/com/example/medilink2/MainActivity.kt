@@ -9,16 +9,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import com.example.medilink2.ui.screens.CreateAccountScreen
-import com.example.medilink2.ui.screens.HomeScreen
-import com.example.medilink2.ui.screens.LoginScreen
-import com.example.medilink2.ui.screens.OnboardingScreen
-import com.example.medilink2.ui.screens.SearchScreen
+import com.example.medilink2.ui.screens.*
 import com.example.medilink2.ui.theme.Medilink2Theme
 import com.google.firebase.database.FirebaseDatabase
 
 enum class Screen {
-    Onboarding, Login, Home, Search, CreateAccount
+    Onboarding, Login, Home, Search, CreateAccount, PharmacyDetail
 }
 
 class MainActivity : ComponentActivity() {
@@ -26,7 +22,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        // Initialize Firebase Database and write a test value
+        // Initialize Firebase Database
         val database = FirebaseDatabase.getInstance()
         val myRef = database.getReference("test")
         myRef.setValue("Hello Firebase 🚀")
@@ -42,6 +38,7 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun MainApp() {
     var currentScreen by remember { mutableStateOf(Screen.Onboarding) }
+    var searchQuery by remember { mutableStateOf<String?>(null) }
 
     when (currentScreen) {
         Screen.Onboarding -> OnboardingScreen(
@@ -58,12 +55,23 @@ fun MainApp() {
             onAccountCreated = { currentScreen = Screen.Login }
         )
         Screen.Home -> HomeScreen(
-            onNavigateToSearch = { currentScreen = Screen.Search },
-            onNavigateToProfile = { /* currentScreen = Screen.Profile */ },
-            onNavigateToNavigate = { /* currentScreen = Screen.Navigate */ }
+            onNavigateToSearch = { query -> 
+                searchQuery = query
+                currentScreen = Screen.Search 
+            },
+            onNavigateToSeeAll = {
+                searchQuery = "" // Reset query to show all pharmacies
+                currentScreen = Screen.Search
+            },
+            onNavigateToPharmacy = { currentScreen = Screen.PharmacyDetail }
         )
         Screen.Search -> SearchScreen(
-            onNavigateToHome = { currentScreen = Screen.Home }
+            initialQuery = searchQuery,
+            onNavigateToHome = { currentScreen = Screen.Home },
+            onNavigateToPharmacy = { currentScreen = Screen.PharmacyDetail }
+        )
+        Screen.PharmacyDetail -> PharmacyDetailScreen(
+            onBack = { currentScreen = Screen.Home }
         )
     }
 }
