@@ -9,6 +9,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.tooling.preview.Preview
 import com.example.medilink2.ui.screens.*
 import com.example.medilink2.ui.theme.Medilink2Theme
 import com.google.firebase.database.FirebaseDatabase
@@ -73,5 +74,13 @@ fun MainApp() {
         Screen.PharmacyDetail -> PharmacyDetailScreen(
             onBack = { currentScreen = Screen.Home }
         )
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun MainAppPreview() {
+    Medilink2Theme {
+        MainApp()
     }
 }
