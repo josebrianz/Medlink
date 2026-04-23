@@ -9,12 +9,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.tooling.preview.Preview
 import com.example.medilink2.ui.screens.*
 import com.example.medilink2.ui.theme.Medilink2Theme
 import com.google.firebase.database.FirebaseDatabase
 
 enum class Screen {
-    Onboarding, Login, Home, Search, CreateAccount, PharmacyDetail
+    Onboarding, Login, Home, Search, CreateAccount, PharmacyDetail, Navigate
 }
 
 class MainActivity : ComponentActivity() {
@@ -60,10 +61,11 @@ fun MainApp() {
                 currentScreen = Screen.Search 
             },
             onNavigateToSeeAll = {
-                searchQuery = "" // Reset query to show all pharmacies
+                searchQuery = "" 
                 currentScreen = Screen.Search
             },
-            onNavigateToPharmacy = { currentScreen = Screen.PharmacyDetail }
+            onNavigateToPharmacy = { currentScreen = Screen.PharmacyDetail },
+            onNavigateToNavigate = { currentScreen = Screen.Navigate }
         )
         Screen.Search -> SearchScreen(
             initialQuery = searchQuery,
@@ -73,5 +75,21 @@ fun MainApp() {
         Screen.PharmacyDetail -> PharmacyDetailScreen(
             onBack = { currentScreen = Screen.Home }
         )
+        Screen.Navigate -> MapScreen(
+            onNavigateToHome = { currentScreen = Screen.Home },
+            onNavigateToSearch = { query: String? ->
+                searchQuery = query
+                currentScreen = Screen.Search
+            },
+            onNavigateToProfile = { /* Navigate to profile */ }
+        )
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun MainAppPreview() {
+    Medilink2Theme {
+        MainApp()
     }
 }
