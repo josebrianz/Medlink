@@ -5,18 +5,14 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.medilink2.ui.screens.*
 import com.example.medilink2.ui.theme.Medilink2Theme
+import com.example.medilink2.ui.viewmodel.NavigationViewModel
+import com.example.medilink2.ui.viewmodel.Screen
 import com.google.firebase.database.FirebaseDatabase
-
-enum class Screen {
-    Onboarding, Login, Home, Search, CreateAccount, PharmacyDetail
-}
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -24,55 +20,71 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         // Initialize Firebase Database
-        val database = FirebaseDatabase.getInstance()
-        val myRef = database.getReference("test")
-        myRef.setValue("Hello Firebase 🚀")
+        FirebaseDatabase.getInstance().getReference("test").setValue("Hello Firebase 🚀")
 
         setContent {
-            Medilink2Theme {
-                MainApp()
+            val navViewModel: NavigationViewModel = viewModel()
+            Medilink2Theme(darkTheme = navViewModel.isDarkMode) {
+                MainApp(navViewModel)
             }
         }
     }
 }
 
 @Composable
-fun MainApp() {
-    var currentScreen by remember { mutableStateOf(Screen.Onboarding) }
-    var searchQuery by remember { mutableStateOf<String?>(null) }
+fun MainApp(navViewModel: NavigationViewModel = viewModel()) {
+    val currentScreen = navViewModel.currentScreen
+    val searchQuery = navViewModel.searchQuery
+    val selectedPharmacyId = navViewModel.selectedPharmacyId
 
     when (currentScreen) {
         Screen.Onboarding -> OnboardingScreen(
-            onGetStarted = { currentScreen = Screen.CreateAccount },
-            onLogin = { currentScreen = Screen.Login }
+            onGetStarted = { navViewModel.navigateTo(Screen.CreateAccount) },
+            onLogin = { navViewModel.navigateTo(Screen.Login) },
+            isDarkMode = navViewModel.isDarkMode,
+            onToggleDarkMode = { navViewModel.toggleDarkMode() }
         )
         Screen.Login -> LoginScreen(
-            onBackToOnboarding = { currentScreen = Screen.Onboarding },
-            onLoginSuccess = { currentScreen = Screen.Home },
-            onNavigateToSignUp = { currentScreen = Screen.CreateAccount }
+            onBackToOnboarding = { navViewModel.navigateTo(Screen.Onboarding) },
+            onLoginSuccess = { navViewModel.navigateTo(Screen.Home) },
+            onNavigateToSignUp = { navViewModel.navigateTo(Screen.CreateAccount) },
+            isDarkMode = navViewModel.isDarkMode,
+            onToggleDarkMode = { navViewModel.toggleDarkMode() }
         )
         Screen.CreateAccount -> CreateAccountScreen(
-            onBackToLogin = { currentScreen = Screen.Login },
-            onAccountCreated = { currentScreen = Screen.Login }
+            onBackToLogin = { navViewModel.navigateTo(Screen.Login) },
+            onAccountCreated = { navViewModel.navigateTo(Screen.Login) },
+            isDarkMode = navViewModel.isDarkMode,
+            onToggleDarkMode = { navViewModel.toggleDarkMode() }
         )
         Screen.Home -> HomeScreen(
             onNavigateToSearch = { query -> 
-                searchQuery = query
-                currentScreen = Screen.Search 
+                navViewModel.navigateToSearch(query ?: "")
             },
             onNavigateToSeeAll = {
-                searchQuery = "" // Reset query to show all pharmacies
-                currentScreen = Screen.Search
+                navViewModel.navigateToSearch("") 
             },
-            onNavigateToPharmacy = { currentScreen = Screen.PharmacyDetail }
+            onNavigateToPharmacy = { pharmacyId: String -> 
+                navViewModel.navigateToPharmacyDetail(pharmacyId)
+            },
+            isDarkMode = navViewModel.isDarkMode,
+            onToggleDarkMode = { navViewModel.toggleDarkMode() }
         )
         Screen.Search -> SearchScreen(
             initialQuery = searchQuery,
-            onNavigateToHome = { currentScreen = Screen.Home },
-            onNavigateToPharmacy = { currentScreen = Screen.PharmacyDetail }
+            onNavigateToHome = { navViewModel.navigateTo(Screen.Home) },
+            onNavigateToPharmacy = { pharmacyId: String, drugName: String? ->
+                navViewModel.navigateToPharmacyDetail(pharmacyId, drugName)
+            },
+            isDarkMode = navViewModel.isDarkMode,
+            onToggleDarkMode = { navViewModel.toggleDarkMode() }
         )
         Screen.PharmacyDetail -> PharmacyDetailScreen(
-            onBack = { currentScreen = Screen.Home }
+            pharmacyId = selectedPharmacyId ?: "1",
+            highlightedDrug = navViewModel.searchedDrugName,
+            onBack = { navViewModel.navigateTo(Screen.Search) },
+            isDarkMode = navViewModel.isDarkMode,
+            onToggleDarkMode = { navViewModel.toggleDarkMode() }
         )
     }
 }
