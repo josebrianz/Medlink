@@ -9,6 +9,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
+import androidx.compose.material.icons.outlined.DarkMode
+import androidx.compose.material.icons.outlined.LightMode
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -34,11 +36,21 @@ data class PharmacyDetails(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PharmacyDetailScreen(
-    onBack: () -> Unit = {}
+    pharmacyId: String,
+    highlightedDrug: String? = null,
+    onBack: () -> Unit = {},
+    isDarkMode: Boolean = false,
+    onToggleDarkMode: () -> Unit = {}
 ) {
     // Accessing the inventory and price retrieval through the Repository
     val repository = remember { PharmacyRepository() }
-    val pharmacy = remember { repository.getPharmacyDetails("1") }
+    val pharmacy = remember(pharmacyId) { repository.getPharmacyDetails(pharmacyId) }
+
+    val filteredInventory = if (highlightedDrug != null) {
+        pharmacy.inventory.filter { it.name.contains(highlightedDrug, ignoreCase = true) }
+    } else {
+        pharmacy.inventory
+    }
 
     Scaffold(
         topBar = {
@@ -49,8 +61,19 @@ fun PharmacyDetailScreen(
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
+                actions = {
+                    IconButton(onClick = onToggleDarkMode) {
+                        Icon(
+                            imageVector = if (isDarkMode) Icons.Outlined.LightMode else Icons.Outlined.DarkMode,
+                            contentDescription = "Toggle Theme"
+                        )
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.White
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    titleContentColor = MaterialTheme.colorScheme.onSurface,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onSurface,
+                    actionIconContentColor = MaterialTheme.colorScheme.onSurface
                 )
             )
         }
@@ -59,7 +82,7 @@ fun PharmacyDetailScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .background(Background)
+                .background(MaterialTheme.colorScheme.background)
         ) {
             // Pharmacy Info Header
             Card(
@@ -67,41 +90,52 @@ fun PharmacyDetailScreen(
                     .fillMaxWidth()
                     .padding(16.dp),
                 shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    Text(pharmacy.name, fontWeight = FontWeight.Bold, fontSize = 22.sp, color = TextPrimary)
+                    Text(pharmacy.name, fontWeight = FontWeight.Bold, fontSize = 22.sp, color = MaterialTheme.colorScheme.onSurface)
                     Spacer(modifier = Modifier.height(4.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Outlined.Place, contentDescription = null, modifier = Modifier.size(16.dp), tint = TextSecondary)
+                        Icon(Icons.Outlined.Place, contentDescription = null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("${pharmacy.location} • ${pharmacy.distance}", color = TextSecondary, fontSize = 14.sp)
+                        Text("${pharmacy.location} • ${pharmacy.distance}", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp)
                     }
                     Spacer(modifier = Modifier.height(8.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Default.Star, contentDescription = null, tint = Color(0xFFFFB300), modifier = Modifier.size(18.dp))
-                        Text(" ${pharmacy.rating}", fontWeight = FontWeight.Medium, fontSize = 16.sp)
+                        Text(" ${pharmacy.rating}", fontWeight = FontWeight.Medium, fontSize = 16.sp, color = MaterialTheme.colorScheme.onSurface)
                         Spacer(modifier = Modifier.width(12.dp))
-                        Icon(Icons.Outlined.Schedule, contentDescription = null, tint = TextSecondary, modifier = Modifier.size(18.dp))
-                        Text(" Closes at ${pharmacy.closingTime}", color = TextSecondary, fontSize = 14.sp)
+                        Icon(Icons.Outlined.Schedule, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp))
+                        Text(" Closes at ${pharmacy.closingTime}", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp)
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Button(
+                        onClick = { /* Navigation logic */ },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(containerColor = TealPrimary),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Icon(Icons.Default.Navigation, contentDescription = null)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Navigate to Pharmacy")
                     }
                 }
             }
 
             Text(
-                "Available Stock & Prices",
+                if (highlightedDrug != null) "Search Result" else "Available Stock & Prices",
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                 fontWeight = FontWeight.Bold,
                 fontSize = 18.sp,
-                color = TextPrimary
+                color = MaterialTheme.colorScheme.onSurface
             )
 
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(bottom = 16.dp)
             ) {
-                items(pharmacy.inventory) { drug ->
+                items(filteredInventory) { drug ->
                     DrugStockCard(drug)
                 }
             }
@@ -124,7 +158,7 @@ fun DrugStockCard(drug: DrugItem) {
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 6.dp),
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Row(
@@ -135,8 +169,8 @@ fun DrugStockCard(drug: DrugItem) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text(drug.name, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = TextPrimary)
-                Text(drug.category, color = TextSecondary, fontSize = 13.sp)
+                Text(drug.name, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = MaterialTheme.colorScheme.onSurface)
+                Text(drug.category, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
                 Spacer(modifier = Modifier.height(4.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     val stockColor = when(drug.stockLevel) {
@@ -151,7 +185,7 @@ fun DrugStockCard(drug: DrugItem) {
                             .background(stockColor, RoundedCornerShape(4.dp))
                     )
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text("Stock: ${drug.stockLevel}", color = TextSecondary, fontSize = 12.sp)
+                    Text("Stock: ${drug.stockLevel}", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
                 }
             }
             
@@ -179,6 +213,6 @@ fun DrugStockCard(drug: DrugItem) {
 @Composable
 fun PharmacyDetailPreview() {
     Medilink2Theme {
-        PharmacyDetailScreen()
+        PharmacyDetailScreen(pharmacyId = "1")
     }
 }

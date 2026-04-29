@@ -33,9 +33,11 @@ data class Pharmacy(val name: String, val location: String, val distance: String
 fun HomeScreen(
     onNavigateToSearch: (String?) -> Unit = {},
     onNavigateToSeeAll: () -> Unit = {},
-    onNavigateToPharmacy: () -> Unit = {},
+    onNavigateToPharmacy: (String) -> Unit = {},
     onNavigateToProfile: () -> Unit = {},
-    onNavigateToNavigate: () -> Unit = {}
+    onNavigateToNavigate: () -> Unit = {},
+    isDarkMode: Boolean = false,
+    onToggleDarkMode: () -> Unit = {}
 ) {
     var userName by remember { mutableStateOf("User") }
     
@@ -75,12 +77,14 @@ fun HomeScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .background(Background)
+                .background(MaterialTheme.colorScheme.background)
         ) {
             item { 
                 HeaderSection(
                     userName = userName,
-                    onSearchClick = { onNavigateToSearch(null) }
+                    onSearchClick = { onNavigateToSearch(null) },
+                    isDarkMode = isDarkMode,
+                    onToggleDarkMode = onToggleDarkMode
                 )
             }
             
@@ -115,7 +119,8 @@ fun HomeScreen(
                                         label = { Text(search) },
                                         shape = RoundedCornerShape(20.dp),
                                         colors = SuggestionChipDefaults.suggestionChipColors(
-                                            containerColor = Color.White
+                                            containerColor = MaterialTheme.colorScheme.surface,
+                                            labelColor = MaterialTheme.colorScheme.onSurface
                                         )
                                     )
                                 }
@@ -144,7 +149,7 @@ fun HomeScreen(
             items(pharmacies) { pharmacy ->
                 PharmacyCard(
                     pharmacy = pharmacy,
-                    onClick = onNavigateToPharmacy
+                    onClick = { onNavigateToPharmacy(pharmacy.name) }
                 )
             }
         }
@@ -154,7 +159,9 @@ fun HomeScreen(
 @Composable
 fun HeaderSection(
     userName: String,
-    onSearchClick: () -> Unit = {}
+    onSearchClick: () -> Unit = {},
+    isDarkMode: Boolean = false,
+    onToggleDarkMode: () -> Unit = {}
 ) {
     Box(
         modifier = Modifier
@@ -176,8 +183,12 @@ fun HeaderSection(
                     Text(userName, color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Bold)
                 }
                 Row {
-                    IconButton(onClick = {}, modifier = Modifier.background(Color.White.copy(alpha = 0.1f), CircleShape)) {
-                        Icon(Icons.Outlined.Place, contentDescription = null, tint = Color.White)
+                    IconButton(onClick = onToggleDarkMode, modifier = Modifier.background(Color.White.copy(alpha = 0.1f), CircleShape)) {
+                        Icon(
+                            imageVector = if (isDarkMode) Icons.Default.LightMode else Icons.Default.DarkMode,
+                            contentDescription = "Toggle Theme",
+                            tint = Color.White
+                        )
                     }
                     Spacer(modifier = Modifier.width(8.dp))
                     IconButton(onClick = {}, modifier = Modifier.background(Color.White.copy(alpha = 0.1f), CircleShape)) {
@@ -190,19 +201,19 @@ fun HeaderSection(
                 value = "",
                 onValueChange = {},
                 readOnly = true,
-                placeholder = { Text("Search medicines, drugs...", color = Color.Gray) },
+                placeholder = { Text("Search medicines, drugs...", color = Color.White.copy(alpha = 0.7f)) },
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable { onSearchClick() },
                 enabled = false,
                 shape = RoundedCornerShape(28.dp),
-                leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null) },
+                leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null, tint = Color.White.copy(alpha = 0.7f)) },
                 colors = TextFieldDefaults.colors(
-                    disabledContainerColor = Color.White,
+                    disabledContainerColor = Color.White.copy(alpha = 0.15f),
                     disabledIndicatorColor = Color.Transparent,
-                    disabledTextColor = Color.Black,
-                    disabledLeadingIconColor = Color.Gray,
-                    disabledPlaceholderColor = Color.Gray
+                    disabledTextColor = Color.White,
+                    disabledLeadingIconColor = Color.White.copy(alpha = 0.7f),
+                    disabledPlaceholderColor = Color.White.copy(alpha = 0.7f)
                 )
             )
             Spacer(modifier = Modifier.height(8.dp))
@@ -243,7 +254,7 @@ fun PharmacyCard(
             .padding(horizontal = 16.dp, vertical = 8.dp)
             .clickable { onClick() },
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Row(
@@ -260,8 +271,8 @@ fun PharmacyCard(
             }
             Spacer(modifier = Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(pharmacy.name, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                Text(pharmacy.location, color = TextSecondary, fontSize = 14.sp)
+                Text(pharmacy.name, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = MaterialTheme.colorScheme.onSurface)
+                Text(pharmacy.location, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp)
             }
             Column(horizontalAlignment = Alignment.End) {
                 Text(
@@ -285,8 +296,8 @@ fun BottomNavigationBar(
     onNavigateToProfile: () -> Unit = {}
 ) {
     NavigationBar(
-        containerColor = Color.White,
-        contentColor = TealPrimary
+        containerColor = MaterialTheme.colorScheme.surface,
+        contentColor = MaterialTheme.colorScheme.primary
     ) {
         NavigationBarItem(
             icon = { Icon(Icons.Default.Home, contentDescription = null) },
