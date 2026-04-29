@@ -11,15 +11,17 @@ class PharmacyRepository {
 
     // Mock backend data for "Price retrieval" and "Inventory management"
     fun getPharmacyDetails(pharmacyId: String): PharmacyDetails {
-        // Simulating a backend lookup for the specific pharmacy
-        return PharmacyDetails(
-            name = "MedPlus Pharmacy",
-            location = "Kampala Road, Plot 23",
-            distance = "0.8 km",
-            rating = "4.8",
-            closingTime = "9:00 PM",
-            inventory = getInventoryForPharmacy(pharmacyId)
+        val pharmacies = mapOf(
+            "1" to PharmacyDetails("1", "MedPlus Pharmacy", "Kampala Road, Plot 23", "0.8 km", "4.8", "9:00 PM", getInventoryForPharmacy("1"), 0.3136, 32.5811),
+            "2" to PharmacyDetails("2", "City Chemist", "Jinja Road", "1.2 km", "4.5", "10:00 PM", getInventoryForPharmacy("2"), 0.3162, 32.5855),
+            "3" to PharmacyDetails("3", "HealthGuard Pharmacy", "Nasser Rd", "0.5 km", "4.7", "8:30 PM", getInventoryForPharmacy("3"), 0.3120, 32.5880),
+            "4" to PharmacyDetails("4", "First Care Pharmacy", "Kikuubo", "1.5 km", "4.2", "7:00 PM", getInventoryForPharmacy("4"), 0.3140, 32.5780),
+            "5" to PharmacyDetails("5", "Vine Pharmacy", "Lugogo Mall", "3.2 km", "4.9", "11:00 PM", getInventoryForPharmacy("5"), 0.3250, 32.6020),
+            "6" to PharmacyDetails("6", "Eco Pharmacy", "Kisementi", "2.8 km", "4.6", "10:30 PM", getInventoryForPharmacy("6"), 0.3350, 32.5950),
+            "7" to PharmacyDetails("7", "Family Health Pharmacy", "Ntinda", "4.5 km", "4.4", "9:30 PM", getInventoryForPharmacy("7"), 0.3540, 32.6110)
         )
+        // Simulating a backend lookup for the specific pharmacy
+        return pharmacies[pharmacyId] ?: pharmacies["1"]!!
     }
 
     private fun getInventoryForPharmacy(pharmacyId: String): List<DrugItem> {

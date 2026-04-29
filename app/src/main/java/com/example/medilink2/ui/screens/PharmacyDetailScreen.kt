@@ -25,12 +25,15 @@ import com.example.medilink2.data.PharmacyRepository
 import com.example.medilink2.ui.theme.*
 
 data class PharmacyDetails(
+    val id: String,
     val name: String,
     val location: String,
     val distance: String,
     val rating: String,
     val closingTime: String,
-    val inventory: List<DrugItem>
+    val inventory: List<DrugItem>,
+    val latitude: Double,
+    val longitude: Double
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -39,6 +42,7 @@ fun PharmacyDetailScreen(
     pharmacyId: String,
     highlightedDrug: String? = null,
     onBack: () -> Unit = {},
+    onNavigateToNavigate: () -> Unit = {},
     isDarkMode: Boolean = false,
     onToggleDarkMode: () -> Unit = {}
 ) {
@@ -111,7 +115,7 @@ fun PharmacyDetailScreen(
                     }
                     Spacer(modifier = Modifier.height(16.dp))
                     Button(
-                        onClick = { /* Navigation logic */ },
+                        onClick = { onNavigateToNavigate() },
                         modifier = Modifier.fillMaxWidth(),
                         colors = ButtonDefaults.buttonColors(containerColor = TealPrimary),
                         shape = RoundedCornerShape(12.dp)

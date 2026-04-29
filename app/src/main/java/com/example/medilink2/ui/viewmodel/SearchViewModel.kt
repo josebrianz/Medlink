@@ -7,11 +7,10 @@ import androidx.lifecycle.ViewModel
 import com.example.medilink2.ui.screens.SearchResult
 
 class SearchViewModel : ViewModel() {
-    var searchQuery by mutableStateOf("")
+    var searchQuery by mutableStateOf<String>("")
         private set
 
-    val allResults = listOf(
-    )
+    val allResults = listOf<SearchResult>()
 
     fun onSearchQueryChange(newQuery: String) {
         searchQuery = newQuery

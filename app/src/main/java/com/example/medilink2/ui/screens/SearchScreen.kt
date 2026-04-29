@@ -43,6 +43,8 @@ data class SearchResult(
 fun SearchScreen(
     initialQuery: String? = null,
     onNavigateToHome: () -> Unit = {},
+    onNavigateToSearch: () -> Unit = {},
+    onNavigateToNavigate: () -> Unit = {},
     onNavigateToPharmacy: (String, String?) -> Unit = { _, _ -> },
     isDarkMode: Boolean = false,
     onToggleDarkMode: () -> Unit = {}
@@ -102,7 +104,9 @@ fun SearchScreen(
         bottomBar = { 
             BottomNavigationBar(
                 currentScreen = "Search", 
-                onNavigateToHome = onNavigateToHome
+                onNavigateToHome = onNavigateToHome,
+                onNavigateToSearch = onNavigateToSearch,
+                onNavigateToNavigate = onNavigateToNavigate
             ) 
         }
     ) { paddingValues ->
