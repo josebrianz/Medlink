@@ -18,9 +18,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.medilink2.ui.components.DrugItem
+import com.example.medilink2.ui.components.DrugStockCard
+import com.example.medilink2.ui.components.NotificationBadge
 import com.example.medilink2.ui.theme.*
 
 data class SearchResult(
+    val id: String,
     val name: String,
     val location: String,
     val distance: String,
@@ -28,7 +32,7 @@ data class SearchResult(
     val rating: String,
     val closingTime: String,
     val inStock: Boolean,
-    val tags: List<String> = emptyList()
+    val tags: List<String> = emptyList(),
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -36,21 +40,22 @@ data class SearchResult(
 fun SearchScreen(
     initialQuery: String? = null,
     onNavigateToHome: () -> Unit = {},
-    onNavigateToPharmacy: () -> Unit = {}
+    onNavigateToPharmacy: (String) -> Unit = {},
+    onNavigateToNotifications: () -> Unit = {},
 ) {
-    var searchQuery by remember { mutableStateOf(initialQuery ?: "Paracetamol") }
+    var searchQuery by remember { mutableStateOf(initialQuery ?: "") }
 
     val allResults = listOf(
-        SearchResult("MedPlus Pharmacy", "Kampala Road, Plot 23", "0.8 km", "UGX 3,000", "4.8", "9:00 PM", true, listOf("Paracetamol", "Panadol Extra", "Diclofenac Gel", "Pain Relief", "Gaviscon")),
-        SearchResult("City Chemist", "Jinja Road, Near Total", "1.2 km", "UGX 2,500", "4.5", "8:00 PM", true, listOf("Paracetamol", "Amoxicillin", "Vitamin C", "Fever", "Augustin")),
-        SearchResult("HealthGuard Pharmacy", "Nasser Road, Block B", "1.8 km", "UGX 3,500", "4.2", "10:00 PM", true, listOf("Aspirin 81mg", "Atorvastatin", "Lisinopril", "Heart", "Amlodipine")),
-        SearchResult("QuickMeds", "Bombo Road, Wandegeya", "3.1 km", "UGX 2,800", "4.6", "7:00 PM", false, listOf("Insulin Glargine", "Metformin", "Diabetes")),
-        SearchResult("Allergy Care", "Wandegeya Market", "2.0 km", "UGX 4,000", "4.4", "6:00 PM", true, listOf("Cetirizine", "Loratadine", "Allergy", "Piriton")),
-        SearchResult("General Wellness", "Mulago Hill", "2.5 km", "UGX 1,500", "4.1", "11:00 PM", true, listOf("ORS Sachet", "Salbutamol Inhaler", "Omeprazole", "General", "Folic Acid")),
-        SearchResult("First Care Pharmacy", "Kikuubo Lane", "0.5 km", "UGX 2,200", "4.7", "11:00 PM", true, listOf("Paracetamol", "Amoxicillin", "Metronidazole", "Antibiotic")),
-        SearchResult("Eco Pharmacy", "Kisementi", "2.2 km", "UGX 5,500", "4.9", "12:00 AM", true, listOf("Vitamin C", "Folic Acid", "Supplements", "Gaviscon")),
-        SearchResult("Vine Pharmacy", "Lugogo Mall", "3.5 km", "UGX 35,000", "4.6", "10:00 PM", true, listOf("Gaviscon", "Ventolin", "General")),
-        SearchResult("Family Health Pharmacy", "Ntinda Road", "4.1 km", "UGX 10,000", "4.3", "9:30 PM", true, listOf("Durex Condoms", "General", "Loratadine"))
+        SearchResult(id = "1", name = "MedPlus Pharmacy", location = "Kampala Road, Plot 23", distance = "0.8 km", price = "UGX 3,000", rating = "4.8", closingTime = "9:00 PM", inStock = true, tags = listOf("Paracetamol", "Panadol Extra", "Diclofenac Gel", "Pain Relief", "Gaviscon")),
+        SearchResult(id = "2", name = "City Chemist", location = "Jinja Road, Near Total", distance = "1.2 km", price = "UGX 2,500", rating = "4.5", closingTime = "8:00 PM", inStock = true, tags = listOf("Paracetamol", "Amoxicillin", "Vitamin C", "Fever", "Augustin")),
+        SearchResult(id = "3", name = "HealthGuard Pharmacy", location = "Nasser Road, Block B", distance = "1.8 km", price = "UGX 3,500", rating = "4.2", closingTime = "10:00 PM", inStock = true, tags = listOf("Aspirin 81mg", "Atorvastatin", "Lisinopril", "Heart", "Amlodipine")),
+        SearchResult(id = "4", name = "QuickMeds", location = "Bombo Road, Wandegeya", distance = "3.1 km", price = "UGX 2,800", rating = "4.6", closingTime = "7:00 PM", inStock = false, tags = listOf("Insulin Glargine", "Metformin", "Diabetes")),
+        SearchResult(id = "5", name = "Allergy Care", location = "Wandegeya Market", distance = "2.0 km", price = "UGX 4,000", rating = "4.4", closingTime = "6:00 PM", inStock = true, tags = listOf("Cetirizine", "Loratadine", "Allergy", "Piriton")),
+        SearchResult(id = "6", name = "General Wellness", location = "Mulago Hill", distance = "2.5 km", price = "UGX 1,500", rating = "4.1", closingTime = "11:00 PM", inStock = true, tags = listOf("ORS Sachet", "Salbutamol Inhaler", "Omeprazole", "General", "Folic Acid")),
+        SearchResult(id = "7", name = "First Care Pharmacy", location = "Kikuubo Lane", distance = "0.5 km", price = "UGX 2,200", rating = "4.7", closingTime = "11:00 PM", inStock = true, tags = listOf("Paracetamol", "Amoxicillin", "Metronidazole", "Antibiotic")),
+        SearchResult(id = "8", name = "Eco Pharmacy", location = "Kisementi", distance = "2.2 km", price = "UGX 5,500", rating = "4.9", closingTime = "12:00 AM", inStock = true, tags = listOf("Vitamin C", "Folic Acid", "Supplements", "Gaviscon")),
+        SearchResult(id = "9", name = "Vine Pharmacy", location = "Lugogo Mall", distance = "3.5 km", price = "UGX 35,000", rating = "4.6", closingTime = "10:00 PM", inStock = true, tags = listOf("Gaviscon", "Ventolin", "General")),
+        SearchResult(id = "10", name = "Family Health Pharmacy", location = "Ntinda Road", distance = "4.1 km", price = "UGX 10,000", rating = "4.3", closingTime = "9:30 PM", inStock = true, tags = listOf("Durex Condoms", "General", "Loratadine")),
     )
 
     val filteredResults = allResults.filter { result ->
@@ -60,10 +65,22 @@ fun SearchScreen(
     }
 
     Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Search", fontWeight = FontWeight.Bold) },
+                actions = {
+                    NotificationBadge(
+                        onClick = onNavigateToNotifications,
+                        iconColor = TealPrimary,
+                    )
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White),
+            )
+        },
         bottomBar = { 
             BottomNavigationBar(
                 currentScreen = "Search", 
-                onNavigateToHome = onNavigateToHome
+                onNavigateToHome = onNavigateToHome,
             ) 
         }
     ) { paddingValues ->
@@ -81,6 +98,13 @@ fun SearchScreen(
                     placeholder = { Text("Search for medicines...") },
                     shape = RoundedCornerShape(28.dp),
                     leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null) },
+                    trailingIcon = {
+                        if (searchQuery.isNotEmpty()) {
+                            IconButton(onClick = { searchQuery = "" }) {
+                                Icon(Icons.Default.Close, contentDescription = "Clear search")
+                            }
+                        }
+                    },
                     colors = TextFieldDefaults.colors(
                         focusedContainerColor = Color.White,
                         unfocusedContainerColor = Color.White,
@@ -110,20 +134,19 @@ fun SearchScreen(
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(bottom = 16.dp)
             ) {
-                // Find matching drugs across all results to show them directly
                 val matchingDrugs = if (searchQuery.isEmpty()) {
                     emptyList()
                 } else {
                     listOf(
-                        DrugItem("Paracetamol", "Pain Relief", "UGX 3,000", true, "High"),
-                        DrugItem("Aspirin 81mg", "Heart", "UGX 2,500", true, "High"),
-                        DrugItem("Insulin Glargine", "Diabetes", "UGX 45,000", true, "Medium"),
-                        DrugItem("Atorvastatin", "Heart", "UGX 18,000", true, "Low"),
-                        DrugItem("Panadol Extra", "Pain Relief", "UGX 4,500", true, "Low"),
-                        DrugItem("Loratadine", "General", "UGX 3,500", true, "High"),
-                        DrugItem("Salbutamol Inhaler", "General", "UGX 15,000", true, "High"),
-                        DrugItem("Cetirizine", "Allergy", "UGX 4,000", true, "High"),
-                        DrugItem("Amoxicillin", "Antibiotic", "UGX 12,000", true, "Medium")
+                        DrugItem(id = "1", name = "Paracetamol", category = "Pain Relief", price = "UGX 3,000", inStock = true, stockLevel = "High"),
+                        DrugItem(id = "9", name = "Aspirin 81mg", category = "Heart", price = "UGX 2,500", inStock = true, stockLevel = "High"),
+                        DrugItem(id = "8", name = "Insulin Glargine", category = "Diabetes", price = "UGX 45,000", inStock = true, stockLevel = "Medium"),
+                        DrugItem(id = "10", name = "Atorvastatin", category = "Heart", price = "UGX 18,000", inStock = true, stockLevel = "Low"),
+                        DrugItem(id = "5", name = "Panadol Extra", category = "Pain Relief", price = "UGX 4,500", inStock = true, stockLevel = "Low"),
+                        DrugItem(id = "14", name = "Loratadine", category = "General", price = "UGX 3,500", inStock = true, stockLevel = "High"),
+                        DrugItem(id = "12", name = "Salbutamol Inhaler", category = "General", price = "UGX 15,000", inStock = true, stockLevel = "High"),
+                        DrugItem(id = "8", name = "Cetirizine", category = "Allergy", price = "UGX 4,000", inStock = true, stockLevel = "High"),
+                        DrugItem(id = "2", name = "Amoxicillin", category = "Antibiotic", price = "UGX 12,000", inStock = true, stockLevel = "Medium"),
                     ).filter { it.name.contains(searchQuery, ignoreCase = true) || it.category.contains(searchQuery, ignoreCase = true) }
                 }
 
@@ -141,7 +164,7 @@ fun SearchScreen(
                     }
                 }
 
-                if (searchQuery.isNotEmpty()) {
+                if (searchQuery.isNotEmpty() && filteredResults.isNotEmpty()) {
                     item {
                         Text(
                             "Pharmacies Stocking This",
@@ -150,14 +173,19 @@ fun SearchScreen(
                             fontWeight = FontWeight.Bold
                         )
                     }
+                } else if (searchQuery.isNotEmpty() && filteredResults.isEmpty()) {
+                    item {
+                        Box(modifier = Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
+                            Text("No pharmacies found for \"$searchQuery\"", color = Color.Gray)
+                        }
+                    }
                 }
 
                 items(filteredResults) { result ->
                     SearchResultCard(
                         result = result,
                         isSearching = searchQuery.isNotEmpty(),
-                        onClick = onNavigateToPharmacy
-                    )
+                    ) { onNavigateToPharmacy(result.id) }
                 }
             }
         }
@@ -221,7 +249,7 @@ fun SearchResultCard(
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                            text = "${result.location} • ${result.distance}",
+                            text = "${result.location} \u2022 ${result.distance}",
                             color = TextSecondary,
                             fontSize = 13.sp
                         )
@@ -235,7 +263,6 @@ fun SearchResultCard(
                         if (isSearching) {
                             Text(result.price, color = TealPrimary, fontWeight = FontWeight.Bold, fontSize = 18.sp)
                         } else {
-                            // Empty box to maintain layout alignment when price is hidden
                             Box(modifier = Modifier.width(1.dp))
                         }
                         Row(verticalAlignment = Alignment.CenterVertically) {

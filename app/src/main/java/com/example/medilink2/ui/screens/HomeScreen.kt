@@ -9,7 +9,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Place
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.*
@@ -23,19 +22,21 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.medilink2.data.UserManager
+import com.example.medilink2.ui.components.NotificationBadge
 import com.example.medilink2.ui.theme.*
 
 data class Category(val name: String, val icon: ImageVector, val color: Color)
-data class Pharmacy(val name: String, val location: String, val distance: String, val isOpen: Boolean)
+data class Pharmacy(val id: String, val name: String, val location: String, val distance: String, val isOpen: Boolean)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     onNavigateToSearch: (String?) -> Unit = {},
     onNavigateToSeeAll: () -> Unit = {},
-    onNavigateToPharmacy: () -> Unit = {},
+    onNavigateToPharmacy: (String) -> Unit = {},
     onNavigateToProfile: () -> Unit = {},
-    onNavigateToNavigate: () -> Unit = {}
+    onNavigateToNavigate: () -> Unit = {},
+    onNavigateToNotifications: () -> Unit = {},
 ) {
     var userName by remember { mutableStateOf("User") }
     
@@ -49,15 +50,15 @@ fun HomeScreen(
         Category("Pain Relief", Icons.Default.AddCircle, CategoryPainRelief),
         Category("Fever", Icons.Default.Face, CategoryFever),
         Category("Heart", Icons.Default.Favorite, CategoryHeart),
-        Category("General", Icons.Default.Star, CategoryGeneral)
+        Category("General", Icons.Default.Star, CategoryGeneral),
     )
 
     val recentSearches = listOf("Paracetamol", "Amoxicillin 500mg", "Ibuprofen", "Metformin")
 
     val pharmacies = listOf(
-        Pharmacy("MedPlus Pharmacy", "Kampala Road", "0.8 km", true),
-        Pharmacy("City Chemist", "Jinja Road", "1.2 km", true),
-        Pharmacy("LifeCare Pharmacy", "Entebbe Road", "2.5 km", false)
+        Pharmacy("1", "MedPlus Pharmacy", "Kampala Road", "0.8 km", isOpen = true),
+        Pharmacy("2", "City Chemist", "Jinja Road", "1.2 km", isOpen = true),
+        Pharmacy("3", "LifeCare Pharmacy", "Entebbe Road", "2.5 km", isOpen = false),
     )
 
     Scaffold(
@@ -67,7 +68,7 @@ fun HomeScreen(
                 onNavigateToHome = { /* Already here */ },
                 onNavigateToSearch = { onNavigateToSearch(null) },
                 onNavigateToProfile = onNavigateToProfile,
-                onNavigateToNavigate = onNavigateToNavigate
+                onNavigateToNavigate = onNavigateToNavigate,
             ) 
         }
     ) { paddingValues ->
@@ -80,8 +81,8 @@ fun HomeScreen(
             item { 
                 HeaderSection(
                     userName = userName,
-                    onSearchClick = { onNavigateToSearch(null) }
-                )
+                    onSearchClick = { onNavigateToSearch(null) },
+                ) { onNavigateToNotifications() }
             }
             
             item {
@@ -95,8 +96,7 @@ fun HomeScreen(
                         categories.forEach { category ->
                             CategoryItem(
                                 category = category,
-                                onClick = { onNavigateToSearch(category.name) }
-                            )
+                            ) { onNavigateToSearch(category.name) }
                         }
                     }
                 }
@@ -144,8 +144,7 @@ fun HomeScreen(
             items(pharmacies) { pharmacy ->
                 PharmacyCard(
                     pharmacy = pharmacy,
-                    onClick = onNavigateToPharmacy
-                )
+                ) { onNavigateToPharmacy(pharmacy.id) }
             }
         }
     }
@@ -154,7 +153,8 @@ fun HomeScreen(
 @Composable
 fun HeaderSection(
     userName: String,
-    onSearchClick: () -> Unit = {}
+    onSearchClick: () -> Unit = {},
+    onNavigateToNotifications: () -> Unit = {},
 ) {
     Box(
         modifier = Modifier
@@ -180,9 +180,10 @@ fun HeaderSection(
                         Icon(Icons.Outlined.Place, contentDescription = null, tint = Color.White)
                     }
                     Spacer(modifier = Modifier.width(8.dp))
-                    IconButton(onClick = {}, modifier = Modifier.background(Color.White.copy(alpha = 0.1f), CircleShape)) {
-                        Icon(Icons.Outlined.Notifications, contentDescription = null, tint = Color.White)
-                    }
+                    NotificationBadge(
+                        onClick = onNavigateToNotifications,
+                        modifier = Modifier.background(Color.White.copy(alpha = 0.1f), CircleShape)
+                    )
                 }
             }
             Spacer(modifier = Modifier.height(24.dp))
