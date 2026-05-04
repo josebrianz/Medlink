@@ -1,7 +1,6 @@
 package com.example.medilink2.data
 
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.auth.UserProfileChangeRequest
 import com.google.firebase.database.FirebaseDatabase
 
 object UserManager {
@@ -18,31 +17,23 @@ object UserManager {
         auth.createUserWithEmailAndPassword(email, password)
             .addOnCompleteListener { task ->
                 if (task.isSuccessful) {
-                    val user = auth.currentUser
-                    val userId = user?.uid
+                    val userId = auth.currentUser?.uid
                     if (userId != null) {
-                        // Update Firebase Auth Display Name
-                        val profileUpdates = UserProfileChangeRequest.Builder()
-                            .setDisplayName(fullName)
-                            .build()
-                        
-                        user.updateProfile(profileUpdates).addOnCompleteListener { profileTask ->
-                            val userMap = mapOf(
-                                "fullName" to fullName,
-                                "phoneNumber" to phoneNumber,
-                                "email" to email
-                            )
-                            database.child(userId).setValue(userMap)
-                                .addOnCompleteListener { dbTask ->
-                                    if (dbTask.isSuccessful) {
-                                        onResult(true, null)
-                                    } else {
-                                        onResult(false, dbTask.exception?.message)
-                                    }
+                        val userMap = mapOf(
+                            "fullName" to fullName,
+                            "phoneNumber" to phoneNumber,
+                            "email" to email
+                        )
+                        database.child(userId).setValue(userMap)
+                            .addOnCompleteListener { dbTask ->
+                                if (dbTask.isSuccessful) {
+                                    onResult(true, null)
+                                } else {
+                                    onResult(false, dbTask.exception?.message)
                                 }
-                        }
+                            }
                     } else {
-                        onResult(true, null)
+                        onResult(true, null) // Auth success but UID null? unlikely
                     }
                 } else {
                     onResult(false, task.exception?.message)

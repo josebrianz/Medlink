@@ -10,6 +10,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.LocalHospital
 import androidx.compose.material.icons.filled.Medication
+import androidx.compose.material.icons.outlined.DarkMode
+import androidx.compose.material.icons.outlined.LightMode
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
@@ -38,7 +40,9 @@ data class OnboardingPage(
 @Composable
 fun OnboardingScreen(
     onGetStarted: () -> Unit = {},
-    onLogin: () -> Unit = {}
+    onLogin: () -> Unit = {},
+    isDarkMode: Boolean = false,
+    onToggleDarkMode: () -> Unit = {}
 ) {
     val pages = listOf(
         OnboardingPage(
@@ -67,10 +71,23 @@ fun OnboardingScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.White)
+            .background(MaterialTheme.colorScheme.background)
             .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.End
+        ) {
+            IconButton(onClick = onToggleDarkMode) {
+                Icon(
+                    imageVector = if (isDarkMode) Icons.Outlined.LightMode else Icons.Outlined.DarkMode,
+                    contentDescription = "Toggle Dark Mode",
+                    tint = MaterialTheme.colorScheme.onBackground
+                )
+            }
+        }
+
         HorizontalPager(
             state = pagerState,
             modifier = Modifier.weight(1f)
@@ -149,7 +166,7 @@ fun OnboardingScreen(
                     text = page.title,
                     style = MaterialTheme.typography.headlineLarge,
                     fontWeight = FontWeight.Bold,
-                    color = Color.Black,
+                    color = MaterialTheme.colorScheme.onBackground,
                     textAlign = TextAlign.Center
                 )
                 Text(

@@ -13,7 +13,7 @@ import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Place
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -23,8 +23,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.medilink2.ui.theme.*
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.database.FirebaseDatabase
 
 data class Category(val name: String, val icon: ImageVector, val color: Color)
 data class Pharmacy(val name: String, val location: String, val distance: String, val isOpen: Boolean)
@@ -36,19 +34,6 @@ fun HomeScreen(
     onNavigateToProfile: () -> Unit = {},
     onNavigateToNavigate: () -> Unit = {}
 ) {
-    var userName by remember { mutableStateOf("User") }
-    val auth = FirebaseAuth.getInstance()
-    val userId = auth.currentUser?.uid
-
-    LaunchedEffect(userId) {
-        if (userId != null) {
-            val database = FirebaseDatabase.getInstance().getReference("users").child(userId)
-            database.child("fullName").get().addOnSuccessListener { snapshot ->
-                userName = snapshot.getValue(String::class.java) ?: "User"
-            }
-        }
-    }
-
     val categories = listOf(
         Category("Pain Relief", Icons.Default.AddCircle, CategoryPainRelief),
         Category("Fever", Icons.Default.Face, CategoryFever),
@@ -82,11 +67,7 @@ fun HomeScreen(
                 .background(Background)
         ) {
             item { 
-                HeaderSection(
-                    userName = userName,
-                    onSearchClick = onNavigateToSearch,
-                    onProfileClick = onNavigateToProfile
-                ) 
+                HeaderSection(onSearchClick = onNavigateToSearch) 
             }
             
             item {
@@ -108,6 +89,7 @@ fun HomeScreen(
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text("Recent Searches", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                     Spacer(modifier = Modifier.height(12.dp))
+                    // Simplified FlowRow replacement to avoid crash
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         recentSearches.chunked(2).forEach { chunk ->
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -151,11 +133,7 @@ fun HomeScreen(
 }
 
 @Composable
-fun HeaderSection(
-    userName: String = "User",
-    onSearchClick: () -> Unit = {},
-    onProfileClick: () -> Unit = {}
-) {
+fun HeaderSection(onSearchClick: () -> Unit = {}) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -171,9 +149,9 @@ fun HeaderSection(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column(modifier = Modifier.clickable { onProfileClick() }) {
+                Column {
                     Text("Good morning 👋", color = Color.White.copy(alpha = 0.8f), fontSize = 16.sp)
-                    Text(userName, color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+                    Text("John Doe", color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Bold)
                 }
                 Row {
                     IconButton(onClick = {}, modifier = Modifier.background(Color.White.copy(alpha = 0.1f), CircleShape)) {
@@ -194,7 +172,7 @@ fun HeaderSection(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable { onSearchClick() },
-                enabled = false,
+                enabled = false, // Set to false to make the whole box clickable for navigation
                 shape = RoundedCornerShape(28.dp),
                 leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null) },
                 colors = TextFieldDefaults.colors(
