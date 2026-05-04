@@ -30,7 +30,9 @@ import com.example.medilink2.ui.theme.*
 @Composable
 fun CreateAccountScreen(
     onBackToLogin: () -> Unit = {},
-    onAccountCreated: () -> Unit = {}
+    onAccountCreated: () -> Unit = {},
+    isDarkMode: Boolean = false,
+    onToggleDarkMode: () -> Unit = {}
 ) {
     var fullName by remember { mutableStateOf("") }
     var phoneNumber by remember { mutableStateOf("") }
@@ -42,23 +44,37 @@ fun CreateAccountScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.White)
+            .background(MaterialTheme.colorScheme.background)
             .padding(24.dp)
     ) {
-        Spacer(modifier = Modifier.height(48.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.End
+        ) {
+            IconButton(onClick = onToggleDarkMode) {
+                Icon(
+                    imageVector = if (isDarkMode) Icons.Outlined.LightMode else Icons.Outlined.DarkMode,
+                    contentDescription = "Toggle Dark Mode",
+                    tint = MaterialTheme.colorScheme.onBackground
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
         
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
                 text = "Create Account ",
                 style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onBackground
             )
             Text("🏥", fontSize = 24.sp)
         }
         
         Text(
             text = "Join MedFind to locate medicines near you",
-            color = TextSecondary,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(top = 8.dp)
         )
 
@@ -171,32 +187,46 @@ fun InputField(
     var passwordVisible by remember { mutableStateOf(false) }
 
     Column {
-        Text(text = label, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+        Text(
+            text = label, 
+            fontWeight = FontWeight.Bold, 
+            fontSize = 14.sp,
+            color = MaterialTheme.colorScheme.onBackground
+        )
         Spacer(modifier = Modifier.height(8.dp))
         OutlinedTextField(
             value = value,
             onValueChange = onValueChange,
-            placeholder = { Text(placeholder, color = Color.Gray) },
+            placeholder = { Text(placeholder, color = MaterialTheme.colorScheme.onSurfaceVariant) },
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(12.dp),
-            leadingIcon = { Icon(icon, contentDescription = null, tint = Color.Gray) },
+            leadingIcon = { 
+                Icon(
+                    icon, 
+                    contentDescription = null, 
+                    tint = if (value.isNotEmpty()) TealPrimary else MaterialTheme.colorScheme.onSurfaceVariant 
+                ) 
+            },
             trailingIcon = if (isPassword) {
                 {
                     IconButton(onClick = { passwordVisible = !passwordVisible }) {
                         Icon(
                             imageVector = if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
                             contentDescription = if (passwordVisible) "Hide password" else "Show password",
-                            tint = Color.Gray
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
             } else null,
             visualTransformation = if (isPassword && !passwordVisible) PasswordVisualTransformation() else VisualTransformation.None,
+            textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
             colors = TextFieldDefaults.colors(
-                focusedContainerColor = Color(0xFFF7F8F9),
-                unfocusedContainerColor = Color(0xFFF7F8F9),
+                focusedContainerColor = MaterialTheme.colorScheme.surface,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surface,
                 focusedIndicatorColor = TealPrimary,
-                unfocusedIndicatorColor = Color.LightGray.copy(alpha = 0.5f)
+                unfocusedIndicatorColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f),
+                focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                unfocusedTextColor = MaterialTheme.colorScheme.onSurface
             )
         )
     }
