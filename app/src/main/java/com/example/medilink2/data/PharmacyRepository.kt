@@ -1,6 +1,6 @@
 package com.example.medilink2.data
 
-import com.example.medilink2.ui.screens.DrugItem
+import com.example.medilink2.ui.components.DrugItem
 import com.example.medilink2.ui.screens.PharmacyDetails
 
 /**
@@ -11,46 +11,74 @@ class PharmacyRepository {
 
     // Mock backend data for "Price retrieval" and "Inventory management"
     fun getPharmacyDetails(pharmacyId: String): PharmacyDetails {
-        val pharmacies = mapOf(
-            "1" to PharmacyDetails("1", "MedPlus Pharmacy", "Kampala Road, Plot 23", "0.8 km", "4.8", "9:00 PM", getInventoryForPharmacy("1"), 0.3136, 32.5811),
-            "2" to PharmacyDetails("2", "City Chemist", "Jinja Road", "1.2 km", "4.5", "10:00 PM", getInventoryForPharmacy("2"), 0.3162, 32.5855),
-            "3" to PharmacyDetails("3", "HealthGuard Pharmacy", "Nasser Rd", "0.5 km", "4.7", "8:30 PM", getInventoryForPharmacy("3"), 0.3120, 32.5880),
-            "4" to PharmacyDetails("4", "First Care Pharmacy", "Kikuubo", "1.5 km", "4.2", "7:00 PM", getInventoryForPharmacy("4"), 0.3140, 32.5780),
-            "5" to PharmacyDetails("5", "Vine Pharmacy", "Lugogo Mall", "3.2 km", "4.9", "11:00 PM", getInventoryForPharmacy("5"), 0.3250, 32.6020),
-            "6" to PharmacyDetails("6", "Eco Pharmacy", "Kisementi", "2.8 km", "4.6", "10:30 PM", getInventoryForPharmacy("6"), 0.3350, 32.5950),
-            "7" to PharmacyDetails("7", "Family Health Pharmacy", "Ntinda", "4.5 km", "4.4", "9:30 PM", getInventoryForPharmacy("7"), 0.3540, 32.6110)
+        val pharmacyNames = mapOf(
+            "1" to "MedPlus Pharmacy",
+            "2" to "City Chemist",
+            "3" to "HealthGuard Pharmacy",
+            "4" to "QuickMeds",
+            "5" to "Allergy Care",
+            "6" to "General Wellness",
+            "7" to "First Care Pharmacy",
+            "8" to "Eco Pharmacy",
+            "9" to "Vine Pharmacy",
+            "10" to "Family Health Pharmacy",
         )
-        // Simulating a backend lookup for the specific pharmacy
-        return pharmacies[pharmacyId] ?: pharmacies["1"]!!
+        
+        val locations = mapOf(
+            "1" to "Kampala Road, Plot 23",
+            "2" to "Jinja Road, Near Total",
+            "3" to "Nasser Road, Block B",
+            "4" to "Bombo Road, Wandegeya",
+            "5" to "Wandegeya Market",
+            "6" to "Mulago Hill",
+            "7" to "Kikuubo Lane",
+            "8" to "Kisementi",
+            "9" to "Lugogo Mall",
+            "10" to "Ntinda Road"
+        )
+
+        return PharmacyDetails(
+            id = pharmacyId,
+            name = pharmacyNames[pharmacyId] ?: "Unknown Pharmacy",
+            location = locations[pharmacyId] ?: "Unknown Location",
+            distance = "${(0..5).random()}.${(0..9).random()} km",
+            rating = "4.${(0..9).random()}",
+            closingTime = "9:00 PM",
+            inventory = getInventoryForPharmacy(pharmacyId)
+        )
     }
 
     private fun getInventoryForPharmacy(pharmacyId: String): List<DrugItem> {
-        return listOf(
-            DrugItem("Paracetamol", "Pain Relief", "UGX 3,000", true, "High"),
-            DrugItem("Amoxicillin", "Antibiotic", "UGX 12,000", true, "Medium"),
-            DrugItem("Ibuprofen", "Pain Relief", "UGX 5,500", false, "Out of Stock"),
-            DrugItem("Cetirizine", "Allergy", "UGX 4,000", true, "High"),
-            DrugItem("Panadol Extra", "Pain Relief", "UGX 4,500", true, "Low"),
-            DrugItem("Vitamin C", "Supplements", "UGX 15,000", true, "Medium"),
-            DrugItem("Metformin", "Diabetes", "UGX 8,000", true, "Low"),
-            DrugItem("Insulin Glargine", "Diabetes", "UGX 45,000", true, "Medium"),
-            DrugItem("Aspirin 81mg", "Heart", "UGX 2,500", true, "High"),
-            DrugItem("Atorvastatin", "Heart", "UGX 18,000", true, "Low"),
-            DrugItem("Lisinopril", "Heart", "UGX 10,000", true, "Medium"),
-            DrugItem("Salbutamol Inhaler", "General", "UGX 15,000", true, "High"),
-            DrugItem("Omeprazole", "General", "UGX 7,000", true, "Medium"),
-            DrugItem("Loratadine", "General", "UGX 3,500", true, "High"),
-            DrugItem("Diclofenac Gel", "Pain Relief", "UGX 12,000", true, "Medium"),
-            DrugItem("Azithromycin", "Antibiotic", "UGX 25,000", false, "Out of Stock"),
-            DrugItem("ORS Sachet", "General", "UGX 1,500", true, "High"),
-            DrugItem("Metronidazole", "Antibiotic", "UGX 6,000", true, "Medium"),
-            DrugItem("Amlodipine", "Heart", "UGX 14,000", true, "High"),
-            DrugItem("Ventolin Inhaler", "General", "UGX 22,000", true, "Low"),
-            DrugItem("Gaviscon Liquid", "General", "UGX 35,000", true, "Medium"),
-            DrugItem("Augustin 625mg", "Antibiotic", "UGX 30,000", true, "High"),
-            DrugItem("Folic Acid", "Supplements", "UGX 5,000", true, "High"),
-            DrugItem("Durex Condoms", "General", "UGX 10,000", true, "High"),
-            DrugItem("Piriton", "Allergy", "UGX 2,500", true, "Medium")
+        val fullInventory = listOf(
+            DrugItem(id = "1", name = "Paracetamol", category = "Pain Relief", price = "UGX 3,000", inStock = true, stockLevel = "High"),
+            DrugItem(id = "2", name = "Amoxicillin", category = "Antibiotic", price = "UGX 12,000", inStock = true, stockLevel = "Medium"),
+            DrugItem(id = "3", name = "Ibuprofen", category = "Pain Relief", price = "UGX 5,500", inStock = false, stockLevel = "Out of Stock"),
+            DrugItem(id = "4", name = "Cetirizine", category = "Allergy", price = "UGX 4,000", inStock = true, stockLevel = "High"),
+            DrugItem(id = "5", name = "Panadol Extra", category = "Pain Relief", price = "UGX 4,500", inStock = true, stockLevel = "Low"),
+            DrugItem(id = "6", name = "Vitamin C", category = "Supplements", price = "UGX 15,000", inStock = true, stockLevel = "Medium"),
+            DrugItem(id = "7", name = "Metformin", category = "Diabetes", price = "UGX 8,000", inStock = true, stockLevel = "Low"),
+            DrugItem(id = "8", name = "Insulin Glargine", category = "Diabetes", price = "UGX 45,000", inStock = true, stockLevel = "Medium"),
+            DrugItem(id = "9", name = "Aspirin 81mg", category = "Heart", price = "UGX 2,500", inStock = true, stockLevel = "High"),
+            DrugItem(id = "10", name = "Atorvastatin", category = "Heart", price = "UGX 18,000", inStock = true, stockLevel = "Low"),
+            DrugItem(id = "11", name = "Lisinopril", category = "Heart", price = "UGX 10,000", inStock = true, stockLevel = "Medium"),
+            DrugItem(id = "12", name = "Salbutamol Inhaler", category = "General", price = "UGX 15,000", inStock = true, stockLevel = "High"),
+            DrugItem(id = "13", name = "Omeprazole", category = "General", price = "UGX 7,000", inStock = true, stockLevel = "Medium"),
+            DrugItem(id = "14", name = "Loratadine", category = "General", price = "UGX 3,500", inStock = true, stockLevel = "High"),
+            DrugItem(id = "15", name = "Diclofenac Gel", category = "Pain Relief", price = "UGX 12,000", inStock = true, stockLevel = "Medium"),
+            DrugItem(id = "16", name = "Azithromycin", category = "Antibiotic", price = "UGX 25,000", inStock = false, stockLevel = "Out of Stock"),
+            DrugItem(id = "17", name = "ORS Sachet", category = "General", price = "UGX 1,500", inStock = true, stockLevel = "High"),
+            DrugItem(id = "18", name = "Metronidazole", category = "Antibiotic", price = "UGX 6,000", inStock = true, stockLevel = "Medium"),
+            DrugItem(id = "19", name = "Amlodipine", category = "Heart", price = "UGX 14,000", inStock = true, stockLevel = "High"),
+            DrugItem(id = "20", name = "Ventolin Inhaler", category = "General", price = "UGX 22,000", inStock = true, stockLevel = "Low"),
+            DrugItem(id = "21", name = "Gaviscon Liquid", category = "General", price = "UGX 35,000", inStock = true, stockLevel = "Medium"),
+            DrugItem(id = "22", name = "Augustin 625mg", category = "Antibiotic", price = "UGX 30,000", inStock = true, stockLevel = "High"),
+            DrugItem(id = "23", name = "Folic Acid", category = "Supplements", price = "UGX 5,000", inStock = true, stockLevel = "High"),
+            DrugItem(id = "24", name = "Durex Condoms", category = "General", price = "UGX 10,000", inStock = true, stockLevel = "High"),
+            DrugItem(id = "25", name = "Piriton", category = "Allergy", price = "UGX 2,500", inStock = true, stockLevel = "Medium"),
         )
+        
+        // Return a randomized subset of items so different pharmacies look different
+        val random = java.util.Random(pharmacyId.hashCode().toLong())
+        return fullInventory.shuffled(random).take(8 + random.nextInt(7))
     }
 }

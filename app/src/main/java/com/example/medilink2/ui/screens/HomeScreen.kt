@@ -9,7 +9,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Place
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.*
@@ -23,10 +22,11 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.medilink2.data.UserManager
+import com.example.medilink2.ui.components.NotificationBadge
 import com.example.medilink2.ui.theme.*
 
 data class Category(val name: String, val icon: ImageVector, val color: Color)
-data class Pharmacy(val name: String, val location: String, val distance: String, val isOpen: Boolean)
+data class Pharmacy(val id: String, val name: String, val location: String, val distance: String, val isOpen: Boolean)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -36,8 +36,7 @@ fun HomeScreen(
     onNavigateToPharmacy: (String) -> Unit = {},
     onNavigateToProfile: () -> Unit = {},
     onNavigateToNavigate: () -> Unit = {},
-    isDarkMode: Boolean = false,
-    onToggleDarkMode: () -> Unit = {}
+    onNavigateToNotifications: () -> Unit = {},
 ) {
     var userName by remember { mutableStateOf("User") }
     
@@ -51,15 +50,15 @@ fun HomeScreen(
         Category("Pain Relief", Icons.Default.AddCircle, CategoryPainRelief),
         Category("Fever", Icons.Default.Face, CategoryFever),
         Category("Heart", Icons.Default.Favorite, CategoryHeart),
-        Category("General", Icons.Default.Star, CategoryGeneral)
+        Category("General", Icons.Default.Star, CategoryGeneral),
     )
 
     val recentSearches = listOf("Paracetamol", "Amoxicillin 500mg", "Ibuprofen", "Metformin")
 
     val pharmacies = listOf(
-        Pharmacy("MedPlus Pharmacy", "Kampala Road", "0.8 km", true),
-        Pharmacy("City Chemist", "Jinja Road", "1.2 km", true),
-        Pharmacy("LifeCare Pharmacy", "Entebbe Road", "2.5 km", false)
+        Pharmacy("1", "MedPlus Pharmacy", "Kampala Road", "0.8 km", isOpen = true),
+        Pharmacy("2", "City Chemist", "Jinja Road", "1.2 km", isOpen = true),
+        Pharmacy("3", "LifeCare Pharmacy", "Entebbe Road", "2.5 km", isOpen = false),
     )
 
     Scaffold(
@@ -69,7 +68,7 @@ fun HomeScreen(
                 onNavigateToHome = { /* Already here */ },
                 onNavigateToSearch = { onNavigateToSearch(null) },
                 onNavigateToProfile = onNavigateToProfile,
-                onNavigateToNavigate = onNavigateToNavigate
+                onNavigateToNavigate = onNavigateToNavigate,
             ) 
         }
     ) { paddingValues ->
@@ -77,15 +76,13 @@ fun HomeScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .background(MaterialTheme.colorScheme.background)
+                .background(Background)
         ) {
             item { 
                 HeaderSection(
                     userName = userName,
                     onSearchClick = { onNavigateToSearch(null) },
-                    isDarkMode = isDarkMode,
-                    onToggleDarkMode = onToggleDarkMode
-                )
+                ) { onNavigateToNotifications() }
             }
             
             item {
@@ -99,8 +96,7 @@ fun HomeScreen(
                         categories.forEach { category ->
                             CategoryItem(
                                 category = category,
-                                onClick = { onNavigateToSearch(category.name) }
-                            )
+                            ) { onNavigateToSearch(category.name) }
                         }
                     }
                 }
@@ -119,8 +115,7 @@ fun HomeScreen(
                                         label = { Text(search) },
                                         shape = RoundedCornerShape(20.dp),
                                         colors = SuggestionChipDefaults.suggestionChipColors(
-                                            containerColor = MaterialTheme.colorScheme.surface,
-                                            labelColor = MaterialTheme.colorScheme.onSurface
+                                            containerColor = Color.White
                                         )
                                     )
                                 }
@@ -149,8 +144,7 @@ fun HomeScreen(
             items(pharmacies) { pharmacy ->
                 PharmacyCard(
                     pharmacy = pharmacy,
-                    onClick = { onNavigateToPharmacy(pharmacy.name) }
-                )
+                ) { onNavigateToPharmacy(pharmacy.id) }
             }
         }
     }
@@ -160,8 +154,7 @@ fun HomeScreen(
 fun HeaderSection(
     userName: String,
     onSearchClick: () -> Unit = {},
-    isDarkMode: Boolean = false,
-    onToggleDarkMode: () -> Unit = {}
+    onNavigateToNotifications: () -> Unit = {},
 ) {
     Box(
         modifier = Modifier
@@ -183,17 +176,14 @@ fun HeaderSection(
                     Text(userName, color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Bold)
                 }
                 Row {
-                    IconButton(onClick = onToggleDarkMode, modifier = Modifier.background(Color.White.copy(alpha = 0.1f), CircleShape)) {
-                        Icon(
-                            imageVector = if (isDarkMode) Icons.Default.LightMode else Icons.Default.DarkMode,
-                            contentDescription = "Toggle Theme",
-                            tint = Color.White
-                        )
+                    IconButton(onClick = {}, modifier = Modifier.background(Color.White.copy(alpha = 0.1f), CircleShape)) {
+                        Icon(Icons.Outlined.Place, contentDescription = null, tint = Color.White)
                     }
                     Spacer(modifier = Modifier.width(8.dp))
-                    IconButton(onClick = {}, modifier = Modifier.background(Color.White.copy(alpha = 0.1f), CircleShape)) {
-                        Icon(Icons.Outlined.Notifications, contentDescription = null, tint = Color.White)
-                    }
+                    NotificationBadge(
+                        onClick = onNavigateToNotifications,
+                        modifier = Modifier.background(Color.White.copy(alpha = 0.1f), CircleShape)
+                    )
                 }
             }
             Spacer(modifier = Modifier.height(24.dp))
@@ -201,19 +191,19 @@ fun HeaderSection(
                 value = "",
                 onValueChange = {},
                 readOnly = true,
-                placeholder = { Text("Search medicines, drugs...", color = Color.White.copy(alpha = 0.7f)) },
+                placeholder = { Text("Search medicines, drugs...", color = Color.Gray) },
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable { onSearchClick() },
                 enabled = false,
                 shape = RoundedCornerShape(28.dp),
-                leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null, tint = Color.White.copy(alpha = 0.7f)) },
+                leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null) },
                 colors = TextFieldDefaults.colors(
-                    disabledContainerColor = Color.White.copy(alpha = 0.15f),
+                    disabledContainerColor = Color.White,
                     disabledIndicatorColor = Color.Transparent,
-                    disabledTextColor = Color.White,
-                    disabledLeadingIconColor = Color.White.copy(alpha = 0.7f),
-                    disabledPlaceholderColor = Color.White.copy(alpha = 0.7f)
+                    disabledTextColor = Color.Black,
+                    disabledLeadingIconColor = Color.Gray,
+                    disabledPlaceholderColor = Color.Gray
                 )
             )
             Spacer(modifier = Modifier.height(8.dp))
@@ -254,7 +244,7 @@ fun PharmacyCard(
             .padding(horizontal = 16.dp, vertical = 8.dp)
             .clickable { onClick() },
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Row(
@@ -271,8 +261,8 @@ fun PharmacyCard(
             }
             Spacer(modifier = Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(pharmacy.name, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = MaterialTheme.colorScheme.onSurface)
-                Text(pharmacy.location, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp)
+                Text(pharmacy.name, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                Text(pharmacy.location, color = TextSecondary, fontSize = 14.sp)
             }
             Column(horizontalAlignment = Alignment.End) {
                 Text(
@@ -296,8 +286,8 @@ fun BottomNavigationBar(
     onNavigateToProfile: () -> Unit = {}
 ) {
     NavigationBar(
-        containerColor = MaterialTheme.colorScheme.surface,
-        contentColor = MaterialTheme.colorScheme.primary
+        containerColor = Color.White,
+        contentColor = TealPrimary
     ) {
         NavigationBarItem(
             icon = { Icon(Icons.Default.Home, contentDescription = null) },
