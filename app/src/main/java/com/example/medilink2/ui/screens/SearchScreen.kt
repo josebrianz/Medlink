@@ -6,25 +6,29 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
-import androidx.compose.material.icons.outlined.DarkMode
-import androidx.compose.material.icons.outlined.LightMode
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.outlined.DarkMode
-import androidx.compose.material.icons.outlined.LightMode
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.medilink2.data.PharmacyRepository
 import com.example.medilink2.ui.theme.*
+import com.example.medilink2.ui.viewmodel.SearchViewModel
 
 data class SearchResult(
     val name: String,
@@ -45,34 +49,29 @@ fun SearchScreen(
     onNavigateToHome: () -> Unit = {},
     onNavigateToPharmacy: (String, String?) -> Unit = { _, _ -> },
     isDarkMode: Boolean = false,
-    onToggleDarkMode: () -> Unit = {}
+    onToggleDarkMode: () -> Unit = {},
+    searchViewModel: SearchViewModel = viewModel()
 ) {
     var searchQuery by rememberSaveable { mutableStateOf(initialQuery ?: "") }
     var selectedDrugName by rememberSaveable { mutableStateOf<String?>(null) }
 
-    val allResults = listOf(
-        SearchResult("MedPlus Pharmacy", "Kampala Road, Plot 23", "0.8 km", "UGX 3,000", "4.8", "9:00 PM", true, "High", listOf("Paracetamol", "Panadol Extra", "Diclofenac Gel", "Pain Relief", "Gaviscon")),
-        SearchResult("City Chemist", "Jinja Road, Near Total", "1.2 km", "UGX 2,500", "4.5", "8:00 PM", true, "Medium", listOf("Paracetamol", "Amoxicillin", "Vitamin C", "Fever", "Augustin")),
-        SearchResult("HealthGuard Pharmacy", "Nasser Road, Block B", "1.8 km", "UGX 3,500", "4.2", "10:00 PM", true, "Low", listOf("Aspirin 81mg", "Atorvastatin", "Lisinopril", "Heart", "Amlodipine")),
-        SearchResult("QuickMeds", "Bombo Road, Wandegeya", "3.1 km", "UGX 2,800", "4.6", "7:00 PM", false, "Out of Stock", listOf("Insulin Glargine", "Metformin", "Diabetes")),
-        SearchResult("Allergy Care", "Wandegeya Market", "2.0 km", "UGX 4,000", "4.4", "6:00 PM", true, "High", listOf("Cetirizine", "Loratadine", "Allergy", "Piriton")),
-        SearchResult("General Wellness", "Mulago Hill", "2.5 km", "UGX 1,500", "4.1", "11:00 PM", true, "Medium", listOf("ORS Sachet", "Salbutamol Inhaler", "Omeprazole", "General", "Folic Acid")),
-        SearchResult("First Care Pharmacy", "Kikuubo Lane", "0.5 km", "UGX 2,200", "4.7", "11:00 PM", true, "High", listOf("Paracetamol", "Amoxicillin", "Metronidazole", "Antibiotic")),
-        SearchResult("Eco Pharmacy", "Kisementi", "2.2 km", "UGX 5,500", "4.9", "12:00 AM", true, "High", listOf("Vitamin C", "Folic Acid", "Supplements", "Gaviscon")),
-        SearchResult("Vine Pharmacy", "Lugogo Mall", "3.5 km", "UGX 35,000", "4.6", "10:00 PM", true, "Low", listOf("Gaviscon", "Ventolin", "General")),
-        SearchResult("Family Health Pharmacy", "Ntinda Road", "4.1 km", "UGX 10,000", "4.3", "9:30 PM", true, "Medium", listOf("Durex Condoms", "General", "Loratadine"))
-    )
+    // Use live data from the database
+    val allResults = searchViewModel.allResults
+    val isLoading = searchViewModel.isLoading
 
+    val trimmedQuery = searchQuery.trim()
     val filteredResults = allResults.filter { result ->
         if (selectedDrugName != null) {
             result.tags.any { it.equals(selectedDrugName, ignoreCase = true) }
-        } else if (searchQuery.isEmpty()) {
+        } else if (trimmedQuery.isEmpty()) {
             true
         } else {
-            result.tags.any { it.contains(searchQuery, ignoreCase = true) } ||
-            result.name.contains(searchQuery, ignoreCase = true)
+            result.tags.any { it.contains(trimmedQuery, ignoreCase = true) } ||
+            result.name.contains(trimmedQuery, ignoreCase = true)
         }
     }
+
+    val keyboardController = LocalSoftwareKeyboardController.current
 
     Scaffold(
         topBar = {
@@ -122,17 +121,26 @@ fun SearchScreen(
                     modifier = Modifier.fillMaxWidth(),
                     placeholder = { Text("Search for medicines...") },
                     shape = RoundedCornerShape(28.dp),
-                    leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null) },
+                    leadingIcon = { 
+                        IconButton(onClick = { keyboardController?.hide() }) {
+                            Icon(Icons.Outlined.Search, contentDescription = "Search")
+                        }
+                    },
                     trailingIcon = {
                         if (searchQuery.isNotEmpty()) {
                             IconButton(onClick = { 
                                 searchQuery = ""
                                 selectedDrugName = null
+                                keyboardController?.hide()
                             }) {
                                 Icon(Icons.Default.Clear, contentDescription = "Clear")
                             }
                         }
                     },
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                    keyboardActions = KeyboardActions(onSearch = {
+                        keyboardController?.hide()
+                    }),
                     colors = TextFieldDefaults.colors(
                         focusedContainerColor = MaterialTheme.colorScheme.surface,
                         unfocusedContainerColor = MaterialTheme.colorScheme.surface,
@@ -151,9 +159,9 @@ fun SearchScreen(
                     fontWeight = FontWeight.Bold,
                     color = TextSecondary
                 )
-            } else if (searchQuery.isNotEmpty()) {
+            } else if (trimmedQuery.isNotEmpty()) {
                 Text(
-                    text = "Results for \"$searchQuery\"",
+                    text = "Results for \"$trimmedQuery\"",
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                     fontWeight = FontWeight.Bold,
                     color = TextSecondary
@@ -167,52 +175,115 @@ fun SearchScreen(
                 )
             }
 
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(bottom = 16.dp)
-            ) {
-                // Show matching drugs ONLY if we haven't selected one yet
-                if (selectedDrugName == null && searchQuery.isNotEmpty()) {
-                    val matchingDrugs = listOf(
-                        "Paracetamol", "Aspirin 81mg", "Insulin Glargine", "Atorvastatin", 
-                        "Panadol Extra", "Loratadine", "Salbutamol Inhaler", "Cetirizine", "Amoxicillin"
-                    ).filter { it.contains(searchQuery, ignoreCase = true) }
+            if (isLoading) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(color = TealPrimary)
+                }
+            } else if (allResults.isEmpty()) {
+                // Helpful empty state for first-time database setup
+                Column(
+                    modifier = Modifier.fillMaxSize().padding(32.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Icon(Icons.Default.CloudOff, contentDescription = null, modifier = Modifier.size(64.dp), tint = Color.Gray)
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text("Database is empty", fontWeight = FontWeight.Bold)
+                    Text("Tap below to sync mock data to Firebase", textAlign = TextAlign.Center, color = Color.Gray)
+                    Spacer(modifier = Modifier.height(24.dp))
+                    Button(
+                        onClick = {
+                            val repo = PharmacyRepository()
+                            repo.seedDatabase(listOf(
+                                SearchResult("MedPlus Pharmacy", "Kampala Road, Plot 23", "0.8 km", "UGX 3,000", "4.8", "9:00 PM", true, "High", listOf("Paracetamol", "Panadol Extra", "Diclofenac Gel", "Pain Relief", "Gaviscon", "Ziconotide", "ARVs")),
+                                SearchResult("City Chemist", "Jinja Road, Near Total", "1.2 km", "UGX 2,500", "4.5", "8:00 PM", true, "Medium", listOf("Paracetamol", "Amoxicillin", "Vitamin C", "Fever", "Augustin"))
+                            ))
+                            searchViewModel.fetchPharmacies()
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = TealPrimary)
+                    ) {
+                        Text("Sync with Database")
+                    }
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(bottom = 16.dp)
+                ) {
+                    // Show matching drugs ONLY if we haven't selected one yet
+                    if (selectedDrugName == null && trimmedQuery.isNotEmpty()) {
+                        val matchingDrugs = listOf(
+                            "Paracetamol", "Aspirin 81mg", "Insulin Glargine", "Atorvastatin", 
+                            "Panadol Extra", "Loratadine", "Salbutamol Inhaler", "Cetirizine", "Amoxicillin", "Ziconotide", "ARVs"
+                        ).filter { it.contains(trimmedQuery, ignoreCase = true) }
 
-                    if (matchingDrugs.isNotEmpty()) {
+                        if (matchingDrugs.isNotEmpty()) {
+                            item {
+                                Text(
+                                    "Matching Medicines",
+                                    modifier = Modifier.padding(16.dp),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                            items(matchingDrugs) { drug ->
+                                SimpleDrugCard(drug) {
+                                    selectedDrugName = drug
+                                    searchQuery = drug
+                                    keyboardController?.hide()
+                                }
+                            }
+                        }
+                    }
+
+                    if (filteredResults.isNotEmpty()) {
                         item {
                             Text(
-                                "Matching Medicines",
+                                if (selectedDrugName != null) "Pharmacies nearby" else "Nearby Pharmacies",
                                 modifier = Modifier.padding(16.dp),
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold
                             )
                         }
-                        items(matchingDrugs) { drug ->
-                            SimpleDrugCard(drug) {
-                                selectedDrugName = drug
-                                searchQuery = drug
+                        items(filteredResults) { result ->
+                            SearchResultCard(
+                                result = result,
+                                isSearching = selectedDrugName != null,
+                                onClick = { onNavigateToPharmacy(result.name, selectedDrugName) }
+                            )
+                        }
+                    } else if (trimmedQuery.isNotEmpty()) {
+                        item {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 64.dp, horizontal = 32.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.SearchOff,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(80.dp),
+                                    tint = Color.Gray.copy(alpha = 0.3f)
+                                )
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Text(
+                                    text = "No pharmacy has that drug",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    fontWeight = FontWeight.Bold,
+                                    textAlign = TextAlign.Center
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = "We couldn't find any pharmacy with \"$trimmedQuery\". Try checking the spelling or searching for another medicine.",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = TextSecondary,
+                                    textAlign = TextAlign.Center
+                                )
                             }
                         }
                     }
-                }
-
-                if (filteredResults.isNotEmpty()) {
-                    item {
-                        Text(
-                            if (selectedDrugName != null) "Pharmacies nearby" else "Nearby Pharmacies",
-                            modifier = Modifier.padding(16.dp),
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                }
-
-                items(filteredResults) { result ->
-                    SearchResultCard(
-                        result = result,
-                        isSearching = selectedDrugName != null,
-                        onClick = { onNavigateToPharmacy(result.name, selectedDrugName) }
-                    )
                 }
             }
         }

@@ -12,8 +12,7 @@ import androidx.compose.material.icons.outlined.*
 import androidx.compose.material.icons.outlined.DarkMode
 import androidx.compose.material.icons.outlined.LightMode
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -44,12 +43,23 @@ fun PharmacyDetailScreen(
 ) {
     // Accessing the inventory and price retrieval through the Repository
     val repository = remember { PharmacyRepository() }
-    val pharmacy = remember(pharmacyId) { repository.getPharmacyDetails(pharmacyId) }
+    val pharmacy by produceState<PharmacyDetails?>(initialValue = null, pharmacyId) {
+        value = repository.getPharmacyDetails(pharmacyId)
+    }
+
+    if (pharmacy == null) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator(color = TealPrimary)
+        }
+        return
+    }
+
+    val currentPharmacy = pharmacy!!
 
     val filteredInventory = if (highlightedDrug != null) {
-        pharmacy.inventory.filter { it.name.contains(highlightedDrug, ignoreCase = true) }
+        currentPharmacy.inventory.filter { it.name.contains(highlightedDrug, ignoreCase = true) }
     } else {
-        pharmacy.inventory
+        currentPharmacy.inventory
     }
 
     Scaffold(
@@ -94,20 +104,20 @@ fun PharmacyDetailScreen(
                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    Text(pharmacy.name, fontWeight = FontWeight.Bold, fontSize = 22.sp, color = MaterialTheme.colorScheme.onSurface)
+                    Text(currentPharmacy.name, fontWeight = FontWeight.Bold, fontSize = 22.sp, color = MaterialTheme.colorScheme.onSurface)
                     Spacer(modifier = Modifier.height(4.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Outlined.Place, contentDescription = null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("${pharmacy.location} • ${pharmacy.distance}", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp)
+                        Text("${currentPharmacy.location} • ${currentPharmacy.distance}", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp)
                     }
                     Spacer(modifier = Modifier.height(8.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Default.Star, contentDescription = null, tint = Color(0xFFFFB300), modifier = Modifier.size(18.dp))
-                        Text(" ${pharmacy.rating}", fontWeight = FontWeight.Medium, fontSize = 16.sp, color = MaterialTheme.colorScheme.onSurface)
+                        Text(" ${currentPharmacy.rating}", fontWeight = FontWeight.Medium, fontSize = 16.sp, color = MaterialTheme.colorScheme.onSurface)
                         Spacer(modifier = Modifier.width(12.dp))
                         Icon(Icons.Outlined.Schedule, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp))
-                        Text(" Closes at ${pharmacy.closingTime}", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp)
+                        Text(" Closes at ${currentPharmacy.closingTime}", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp)
                     }
                     Spacer(modifier = Modifier.height(16.dp))
                     Button(
