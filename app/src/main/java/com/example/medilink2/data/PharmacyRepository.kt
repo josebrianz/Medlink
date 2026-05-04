@@ -2,105 +2,53 @@ package com.example.medilink2.data
 
 import com.example.medilink2.ui.screens.DrugItem
 import com.example.medilink2.ui.screens.PharmacyDetails
-import com.example.medilink2.ui.screens.SearchResult
-import com.google.firebase.database.DataSnapshot
-import com.google.firebase.database.DatabaseError
-import com.google.firebase.database.FirebaseDatabase
-import com.google.firebase.database.ValueEventListener
-import kotlinx.coroutines.suspendCancellableCoroutine
-import kotlin.coroutines.resume
 
 /**
- * Repository responsible for retrieving pharmacy inventory and details from Firebase.
+ * Repository responsible for retrieving pharmacy inventory and price details.
+ * In a real app, this would fetch data from a Room database or a Remote API.
  */
 class PharmacyRepository {
 
-    private val database = FirebaseDatabase.getInstance().getReference("pharmacies")
-
-    suspend fun getAllPharmacies(): List<SearchResult> = suspendCancellableCoroutine { continuation ->
-        database.addListenerForSingleValueEvent(object : ValueEventListener {
-            override fun onDataChange(snapshot: DataSnapshot) {
-                val results = snapshot.children.mapNotNull { child ->
-                    try {
-                        val name = child.child("name").getValue(String::class.java) ?: ""
-                        val location = child.child("location").getValue(String::class.java) ?: ""
-                        val distance = child.child("distance").getValue(String::class.java) ?: ""
-                        val price = child.child("price").getValue(String::class.java) ?: ""
-                        val rating = child.child("rating").getValue(String::class.java) ?: ""
-                        val closingTime = child.child("closingTime").getValue(String::class.java) ?: ""
-                        val inStock = child.child("inStock").getValue(Boolean::class.java) ?: false
-                        val stockLevel = child.child("stockLevel").getValue(String::class.java) ?: "Medium"
-                        
-                        val tags = mutableListOf<String>()
-                        child.child("tags").children.forEach { tagSnapshot ->
-                            tagSnapshot.getValue(String::class.java)?.let { tags.add(it) }
-                        }
-
-                        SearchResult(name, location, distance, price, rating, closingTime, inStock, stockLevel, tags)
-                    } catch (e: Exception) {
-                        null
-                    }
-                }
-                continuation.resume(results)
-            }
-
-            override fun onCancelled(error: DatabaseError) {
-                continuation.resume(emptyList())
-            }
-        })
+    // Mock backend data for "Price retrieval" and "Inventory management"
+    fun getPharmacyDetails(pharmacyId: String): PharmacyDetails {
+        // Simulating a backend lookup for the specific pharmacy
+        return PharmacyDetails(
+            name = "MedPlus Pharmacy",
+            location = "Kampala Road, Plot 23",
+            distance = "0.8 km",
+            rating = "4.8",
+            closingTime = "9:00 PM",
+            inventory = getInventoryForPharmacy(pharmacyId)
+        )
     }
 
-    suspend fun getPharmacyDetails(pharmacyId: String): PharmacyDetails? = suspendCancellableCoroutine { continuation ->
-        database.addListenerForSingleValueEvent(object : ValueEventListener {
-            override fun onDataChange(snapshot: DataSnapshot) {
-                // Find pharmacy by name or ID
-                val child = snapshot.children.firstOrNull { 
-                    it.child("name").getValue(String::class.java) == pharmacyId 
-                }
-                
-                if (child != null) {
-                    val inventory = mutableListOf<DrugItem>()
-                    child.child("inventory").children.forEach { drugSnapshot ->
-                        try {
-                            val name = drugSnapshot.child("name").getValue(String::class.java) ?: ""
-                            val category = drugSnapshot.child("category").getValue(String::class.java) ?: ""
-                            val price = drugSnapshot.child("price").getValue(String::class.java) ?: ""
-                            val inStock = drugSnapshot.child("inStock").getValue(Boolean::class.java) ?: false
-                            val stockLevel = drugSnapshot.child("stockLevel").getValue(String::class.java) ?: ""
-                            inventory.add(DrugItem(name, category, price, inStock, stockLevel))
-                        } catch (e: Exception) {}
-                    }
-
-                    continuation.resume(PharmacyDetails(
-                        name = child.child("name").getValue(String::class.java) ?: "",
-                        location = child.child("location").getValue(String::class.java) ?: "",
-                        distance = child.child("distance").getValue(String::class.java) ?: "",
-                        rating = child.child("rating").getValue(String::class.java) ?: "",
-                        closingTime = child.child("closingTime").getValue(String::class.java) ?: "",
-                        inventory = inventory
-                    ))
-                } else {
-                    continuation.resume(null)
-                }
-            }
-
-            override fun onCancelled(error: DatabaseError) {
-                continuation.resume(null)
-            }
-        })
-    }
-
-    fun seedDatabase(pharmacies: List<SearchResult>) {
-        pharmacies.forEach { pharmacy ->
-            val key = pharmacy.name.replace(Regex("[.#$\\[\\]]"), "_")
-            val ref = database.child(key)
-            ref.setValue(pharmacy)
-            
-            // Add sample inventory based on tags for search functionality
-            val inventory = pharmacy.tags.map { tag ->
-                DrugItem(tag, "General", pharmacy.price, pharmacy.inStock, pharmacy.stockLevel)
-            }
-            ref.child("inventory").setValue(inventory)
-        }
+    private fun getInventoryForPharmacy(pharmacyId: String): List<DrugItem> {
+        return listOf(
+            DrugItem("Paracetamol", "Pain Relief", "UGX 3,000", true, "High"),
+            DrugItem("Amoxicillin", "Antibiotic", "UGX 12,000", true, "Medium"),
+            DrugItem("Ibuprofen", "Pain Relief", "UGX 5,500", false, "Out of Stock"),
+            DrugItem("Cetirizine", "Allergy", "UGX 4,000", true, "High"),
+            DrugItem("Panadol Extra", "Pain Relief", "UGX 4,500", true, "Low"),
+            DrugItem("Vitamin C", "Supplements", "UGX 15,000", true, "Medium"),
+            DrugItem("Metformin", "Diabetes", "UGX 8,000", true, "Low"),
+            DrugItem("Insulin Glargine", "Diabetes", "UGX 45,000", true, "Medium"),
+            DrugItem("Aspirin 81mg", "Heart", "UGX 2,500", true, "High"),
+            DrugItem("Atorvastatin", "Heart", "UGX 18,000", true, "Low"),
+            DrugItem("Lisinopril", "Heart", "UGX 10,000", true, "Medium"),
+            DrugItem("Salbutamol Inhaler", "General", "UGX 15,000", true, "High"),
+            DrugItem("Omeprazole", "General", "UGX 7,000", true, "Medium"),
+            DrugItem("Loratadine", "General", "UGX 3,500", true, "High"),
+            DrugItem("Diclofenac Gel", "Pain Relief", "UGX 12,000", true, "Medium"),
+            DrugItem("Azithromycin", "Antibiotic", "UGX 25,000", false, "Out of Stock"),
+            DrugItem("ORS Sachet", "General", "UGX 1,500", true, "High"),
+            DrugItem("Metronidazole", "Antibiotic", "UGX 6,000", true, "Medium"),
+            DrugItem("Amlodipine", "Heart", "UGX 14,000", true, "High"),
+            DrugItem("Ventolin Inhaler", "General", "UGX 22,000", true, "Low"),
+            DrugItem("Gaviscon Liquid", "General", "UGX 35,000", true, "Medium"),
+            DrugItem("Augustin 625mg", "Antibiotic", "UGX 30,000", true, "High"),
+            DrugItem("Folic Acid", "Supplements", "UGX 5,000", true, "High"),
+            DrugItem("Durex Condoms", "General", "UGX 10,000", true, "High"),
+            DrugItem("Piriton", "Allergy", "UGX 2,500", true, "Medium")
+        )
     }
 }
