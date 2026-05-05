@@ -13,7 +13,7 @@ import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Place
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -22,18 +22,23 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.medilink2.data.PharmacyRepository
 import com.example.medilink2.ui.theme.*
 
 data class Category(val name: String, val icon: ImageVector, val color: Color)
-data class Pharmacy(val name: String, val location: String, val distance: String, val isOpen: Boolean)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     onNavigateToSearch: () -> Unit = {},
     onNavigateToProfile: () -> Unit = {},
-    onNavigateToNavigate: () -> Unit = {}
+    onNavigateToNotifications: () -> Unit = {},
+    onNavigateToNavigate: () -> Unit = {},
+    onNavigateToPharmacy: (String) -> Unit = {}
 ) {
+    val repository = remember { PharmacyRepository() }
+    val pharmacies = remember { repository.getAllPharmacies().take(3) }
+
     val categories = listOf(
         Category("Pain Relief", Icons.Default.AddCircle, CategoryPainRelief),
         Category("Fever", Icons.Default.Face, CategoryFever),
@@ -42,12 +47,6 @@ fun HomeScreen(
     )
 
     val recentSearches = listOf("Paracetamol", "Amoxicillin 500mg", "Ibuprofen", "Metformin")
-
-    val pharmacies = listOf(
-        Pharmacy("MedPlus Pharmacy", "Kampala Road", "0.8 km", true),
-        Pharmacy("City Chemist", "Jinja Road", "1.2 km", true),
-        Pharmacy("LifeCare Pharmacy", "Entebbe Road", "2.5 km", false)
-    )
 
     Scaffold(
         bottomBar = { 
@@ -67,7 +66,11 @@ fun HomeScreen(
                 .background(Background)
         ) {
             item { 
-                HeaderSection(onSearchClick = onNavigateToSearch) 
+                HeaderSection(
+                    onSearchClick = onNavigateToSearch,
+                    onNotificationsClick = onNavigateToNotifications,
+                    onNavigateToNavigate = onNavigateToNavigate
+                ) 
             }
             
             item {
@@ -89,7 +92,6 @@ fun HomeScreen(
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text("Recent Searches", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                     Spacer(modifier = Modifier.height(12.dp))
-                    // Simplified FlowRow replacement to avoid crash
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         recentSearches.chunked(2).forEach { chunk ->
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -120,20 +122,31 @@ fun HomeScreen(
                         text = "See all", 
                         color = TealPrimary, 
                         fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.clickable { /* Handle See all */ }
+                        modifier = Modifier.clickable { onNavigateToSearch() }
                     )
                 }
             }
 
             items(pharmacies) { pharmacy ->
-                PharmacyCard(pharmacy)
+                PharmacyCard(
+                    id = pharmacy.id,
+                    name = pharmacy.name,
+                    location = pharmacy.location,
+                    distance = pharmacy.distance,
+                    isOpen = true, // Defaulting to true for demo
+                    onClick = { onNavigateToPharmacy(pharmacy.id) }
+                )
             }
         }
     }
 }
 
 @Composable
-fun HeaderSection(onSearchClick: () -> Unit = {}) {
+fun HeaderSection(
+    onSearchClick: () -> Unit = {},
+    onNotificationsClick: () -> Unit = {},
+    onNavigateToNavigate: () -> Unit = {}
+) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -154,13 +167,17 @@ fun HeaderSection(onSearchClick: () -> Unit = {}) {
                     Text("John Doe", color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Bold)
                 }
                 Row {
-                    IconButton(onClick = {}, modifier = Modifier.background(Color.White.copy(alpha = 0.1f), CircleShape)) {
+                    IconButton(
+                        onClick = onNavigateToNavigate,
+                        modifier = Modifier.background(Color.White.copy(alpha = 0.1f), CircleShape)
+                    ) {
                         Icon(Icons.Outlined.Place, contentDescription = null, tint = Color.White)
                     }
                     Spacer(modifier = Modifier.width(8.dp))
-                    IconButton(onClick = {}, modifier = Modifier.background(Color.White.copy(alpha = 0.1f), CircleShape)) {
-                        Icon(Icons.Outlined.Notifications, contentDescription = null, tint = Color.White)
-                    }
+                    com.example.medilink2.ui.components.NotificationBadge(
+                        onClick = onNotificationsClick,
+                        modifier = Modifier.size(40.dp)
+                    )
                 }
             }
             Spacer(modifier = Modifier.height(24.dp))
@@ -172,7 +189,7 @@ fun HeaderSection(onSearchClick: () -> Unit = {}) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable { onSearchClick() },
-                enabled = false, // Set to false to make the whole box clickable for navigation
+                enabled = false,
                 shape = RoundedCornerShape(28.dp),
                 leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null) },
                 colors = TextFieldDefaults.colors(
@@ -206,12 +223,19 @@ fun CategoryItem(category: Category) {
 }
 
 @Composable
-fun PharmacyCard(pharmacy: Pharmacy) {
+fun PharmacyCard(
+    id: String,
+    name: String,
+    location: String,
+    distance: String,
+    isOpen: Boolean,
+    onClick: () -> Unit = {}
+) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp)
-            .clickable { /* Handle Pharmacy click */ },
+            .clickable { onClick() },
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
@@ -230,17 +254,17 @@ fun PharmacyCard(pharmacy: Pharmacy) {
             }
             Spacer(modifier = Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(pharmacy.name, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                Text(pharmacy.location, color = TextSecondary, fontSize = 14.sp)
+                Text(name, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                Text(location, color = TextSecondary, fontSize = 14.sp)
             }
             Column(horizontalAlignment = Alignment.End) {
                 Text(
-                    text = if (pharmacy.isOpen) "Open" else "Closed",
-                    color = if (pharmacy.isOpen) StatusOpen else StatusClosed,
+                    text = if (isOpen) "Open" else "Closed",
+                    color = if (isOpen) StatusOpen else StatusClosed,
                     fontWeight = FontWeight.Bold,
                     fontSize = 14.sp
                 )
-                Text(pharmacy.distance, color = TextSecondary, fontSize = 12.sp)
+                Text(distance, color = TextSecondary, fontSize = 12.sp)
             }
         }
     }

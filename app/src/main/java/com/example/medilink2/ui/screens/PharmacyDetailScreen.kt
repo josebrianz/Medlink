@@ -34,6 +34,8 @@ data class PharmacyDetails(
     val rating: String,
     val closingTime: String,
     val inventory: List<DrugItem>,
+    val latitude: Double = 0.3476,
+    val longitude: Double = 32.5825,
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -42,6 +44,7 @@ fun PharmacyDetailScreen(
     pharmacyId: String = "1",
     onBack: () -> Unit = {},
     onNavigateToNotifications: () -> Unit = {},
+    onNavigateToNavigate: () -> Unit = {},
 ) {
     val repository = remember { PharmacyRepository() }
     val pharmacy = remember(pharmacyId) { repository.getPharmacyDetails(pharmacyId) }
@@ -107,6 +110,19 @@ fun PharmacyDetailScreen(
                         Text(" Closes at ${pharmacy.closingTime}", color = TextSecondary, fontSize = 14.sp)
                     }
                 }
+            }
+
+            Button(
+                onClick = onNavigateToNavigate,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = TealPrimary),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Icon(Icons.Default.Directions, contentDescription = null)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Navigate to Pharmacy")
             }
 
             Text(

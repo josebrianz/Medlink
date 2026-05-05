@@ -60,4 +60,17 @@ object UserManager {
                 }
             }
     }
+
+    fun getUserId(): String? = auth.currentUser?.uid
+
+    fun updateFcmToken(token: String? = null) {
+        val userId = auth.currentUser?.uid ?: return
+        
+        if (token != null) {
+            database.child(userId).child("fcmToken").setValue(token)
+        } else {
+            // If token is not provided, we might want to fetch it and update, 
+            // but usually this is called from onNewToken or after login.
+        }
+    }
 }

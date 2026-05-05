@@ -24,11 +24,11 @@ fun NotificationBadge(
     badgeColor: Color = Color.Red,
 ) {
     val userId = UserManager.getUserId()
-    val unreadCount by if (userId != null) {
-        NotificationLogicManager.getUnreadNotificationsCount(userId).collectAsState(initial = 0)
+    val unreadCount by (if (userId != null) {
+        NotificationLogicManager.getUnreadNotificationsCount(userId)
     } else {
-        remember { mutableIntStateOf(0) }
-    }
+        kotlinx.coroutines.flow.flowOf(0)
+    }).collectAsState(initial = 0)
 
     Box(modifier = modifier.size(48.dp)) {
         IconButton(

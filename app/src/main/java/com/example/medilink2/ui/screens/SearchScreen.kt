@@ -42,27 +42,15 @@ fun SearchScreen(
     onNavigateToHome: () -> Unit = {},
     onNavigateToPharmacy: (String) -> Unit = {},
     onNavigateToNotifications: () -> Unit = {},
+    onNavigateToNavigate: () -> Unit = {},
+    viewModel: com.example.medilink2.ui.viewmodel.SearchViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
 ) {
-    var searchQuery by remember { mutableStateOf(initialQuery ?: "") }
-
-    val allResults = listOf(
-        SearchResult(id = "1", name = "MedPlus Pharmacy", location = "Kampala Road, Plot 23", distance = "0.8 km", price = "UGX 3,000", rating = "4.8", closingTime = "9:00 PM", inStock = true, tags = listOf("Paracetamol", "Panadol Extra", "Diclofenac Gel", "Pain Relief", "Gaviscon")),
-        SearchResult(id = "2", name = "City Chemist", location = "Jinja Road, Near Total", distance = "1.2 km", price = "UGX 2,500", rating = "4.5", closingTime = "8:00 PM", inStock = true, tags = listOf("Paracetamol", "Amoxicillin", "Vitamin C", "Fever", "Augustin")),
-        SearchResult(id = "3", name = "HealthGuard Pharmacy", location = "Nasser Road, Block B", distance = "1.8 km", price = "UGX 3,500", rating = "4.2", closingTime = "10:00 PM", inStock = true, tags = listOf("Aspirin 81mg", "Atorvastatin", "Lisinopril", "Heart", "Amlodipine")),
-        SearchResult(id = "4", name = "QuickMeds", location = "Bombo Road, Wandegeya", distance = "3.1 km", price = "UGX 2,800", rating = "4.6", closingTime = "7:00 PM", inStock = false, tags = listOf("Insulin Glargine", "Metformin", "Diabetes")),
-        SearchResult(id = "5", name = "Allergy Care", location = "Wandegeya Market", distance = "2.0 km", price = "UGX 4,000", rating = "4.4", closingTime = "6:00 PM", inStock = true, tags = listOf("Cetirizine", "Loratadine", "Allergy", "Piriton")),
-        SearchResult(id = "6", name = "General Wellness", location = "Mulago Hill", distance = "2.5 km", price = "UGX 1,500", rating = "4.1", closingTime = "11:00 PM", inStock = true, tags = listOf("ORS Sachet", "Salbutamol Inhaler", "Omeprazole", "General", "Folic Acid")),
-        SearchResult(id = "7", name = "First Care Pharmacy", location = "Kikuubo Lane", distance = "0.5 km", price = "UGX 2,200", rating = "4.7", closingTime = "11:00 PM", inStock = true, tags = listOf("Paracetamol", "Amoxicillin", "Metronidazole", "Antibiotic")),
-        SearchResult(id = "8", name = "Eco Pharmacy", location = "Kisementi", distance = "2.2 km", price = "UGX 5,500", rating = "4.9", closingTime = "12:00 AM", inStock = true, tags = listOf("Vitamin C", "Folic Acid", "Supplements", "Gaviscon")),
-        SearchResult(id = "9", name = "Vine Pharmacy", location = "Lugogo Mall", distance = "3.5 km", price = "UGX 35,000", rating = "4.6", closingTime = "10:00 PM", inStock = true, tags = listOf("Gaviscon", "Ventolin", "General")),
-        SearchResult(id = "10", name = "Family Health Pharmacy", location = "Ntinda Road", distance = "4.1 km", price = "UGX 10,000", rating = "4.3", closingTime = "9:30 PM", inStock = true, tags = listOf("Durex Condoms", "General", "Loratadine")),
-    )
-
-    val filteredResults = allResults.filter { result ->
-        if (searchQuery.isEmpty()) true
-        else result.tags.any { it.contains(searchQuery, ignoreCase = true) } ||
-             result.name.contains(searchQuery, ignoreCase = true)
+    LaunchedEffect(initialQuery) {
+        viewModel.setInitialQuery(initialQuery)
     }
+
+    val searchQuery = viewModel.searchQuery
+    val filteredResults = viewModel.getFilteredResults()
 
     Scaffold(
         topBar = {
@@ -81,6 +69,9 @@ fun SearchScreen(
             BottomNavigationBar(
                 currentScreen = "Search", 
                 onNavigateToHome = onNavigateToHome,
+                onNavigateToSearch = { /* Already here */ },
+                onNavigateToNavigate = onNavigateToNavigate,
+                onNavigateToProfile = { /* No profile yet */ }
             ) 
         }
     ) { paddingValues ->
@@ -93,14 +84,14 @@ fun SearchScreen(
             Box(modifier = Modifier.padding(16.dp)) {
                 OutlinedTextField(
                     value = searchQuery,
-                    onValueChange = { searchQuery = it },
+                    onValueChange = { viewModel.onSearchQueryChange(it) },
                     modifier = Modifier.fillMaxWidth(),
                     placeholder = { Text("Search for medicines...") },
                     shape = RoundedCornerShape(28.dp),
                     leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null) },
                     trailingIcon = {
                         if (searchQuery.isNotEmpty()) {
-                            IconButton(onClick = { searchQuery = "" }) {
+                            IconButton(onClick = { viewModel.onSearchQueryChange("") }) {
                                 Icon(Icons.Default.Close, contentDescription = "Clear search")
                             }
                         }
@@ -134,21 +125,7 @@ fun SearchScreen(
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(bottom = 16.dp)
             ) {
-                val matchingDrugs = if (searchQuery.isEmpty()) {
-                    emptyList()
-                } else {
-                    listOf(
-                        DrugItem(id = "1", name = "Paracetamol", category = "Pain Relief", price = "UGX 3,000", inStock = true, stockLevel = "High"),
-                        DrugItem(id = "9", name = "Aspirin 81mg", category = "Heart", price = "UGX 2,500", inStock = true, stockLevel = "High"),
-                        DrugItem(id = "8", name = "Insulin Glargine", category = "Diabetes", price = "UGX 45,000", inStock = true, stockLevel = "Medium"),
-                        DrugItem(id = "10", name = "Atorvastatin", category = "Heart", price = "UGX 18,000", inStock = true, stockLevel = "Low"),
-                        DrugItem(id = "5", name = "Panadol Extra", category = "Pain Relief", price = "UGX 4,500", inStock = true, stockLevel = "Low"),
-                        DrugItem(id = "14", name = "Loratadine", category = "General", price = "UGX 3,500", inStock = true, stockLevel = "High"),
-                        DrugItem(id = "12", name = "Salbutamol Inhaler", category = "General", price = "UGX 15,000", inStock = true, stockLevel = "High"),
-                        DrugItem(id = "8", name = "Cetirizine", category = "Allergy", price = "UGX 4,000", inStock = true, stockLevel = "High"),
-                        DrugItem(id = "2", name = "Amoxicillin", category = "Antibiotic", price = "UGX 12,000", inStock = true, stockLevel = "Medium"),
-                    ).filter { it.name.contains(searchQuery, ignoreCase = true) || it.category.contains(searchQuery, ignoreCase = true) }
-                }
+                val matchingDrugs = viewModel.getMatchingDrugs()
 
                 if (matchingDrugs.isNotEmpty()) {
                     item {

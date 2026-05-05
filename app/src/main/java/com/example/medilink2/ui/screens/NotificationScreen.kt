@@ -31,11 +31,11 @@ fun NotificationScreen(
 ) {
     val userId = UserManager.getUserId()
     val scope = rememberCoroutineScope()
-    val notifications by if (userId != null) {
-        NotificationLogicManager.getNotifications(userId).collectAsState(initial = emptyList())
+    val notifications by (if (userId != null) {
+        NotificationLogicManager.getNotifications(userId)
     } else {
-        remember { mutableStateOf(emptyList()) }
-    }
+        kotlinx.coroutines.flow.flowOf(emptyList<NotificationRequest>())
+    }).collectAsState(initial = emptyList())
 
     Scaffold(
         topBar = {
