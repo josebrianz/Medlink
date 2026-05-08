@@ -18,6 +18,7 @@ import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -25,7 +26,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.findViewTreeLifecycleOwner
+import androidx.lifecycle.lifecycleScope
 import com.example.medilink2.data.PharmacyRepository
+import com.example.medilink2.ui.components.NotificationBadge
 import com.example.medilink2.ui.theme.Background
 import com.example.medilink2.ui.theme.TealPrimary
 import com.google.android.gms.location.*
@@ -55,18 +59,21 @@ fun MapScreen(
     onNavigateToSearch: (String?) -> Unit = {},
     onNavigateToProfile: () -> Unit = {},
     onNavigateToNavigate: () -> Unit = {},
-    onNavigateToPharmacy: (String) -> Unit = {}
+    onNotificationClick: () -> Unit = {},
+    onNavigateToPharmacy: (String) -> Unit = {},
+    isDarkMode: Boolean = false
 ) {
     val context = LocalContext.current
     val mapView = remember { MapView(context) }
     val repository = remember { PharmacyRepository() }
+    val pharmacies by repository.getAllPharmacies().collectAsState(initial = emptyList())
     val fusedLocationClient = remember { LocationServices.getFusedLocationProviderClient(context) }
     
     Configuration.getInstance().userAgentValue = context.packageName
 
+    var locationSearchQuery by rememberSaveable { mutableStateOf("") }
     var userLocation by remember { mutableStateOf<GeoPoint?>(null) }
-    var locationSearchQuery by remember { mutableStateOf("") }
-    var hasLocationPermission by remember {
+    var hasLocationPermission by rememberSaveable {
         mutableStateOf(
             ContextCompat.checkSelfPermission(
                 context,
@@ -119,8 +126,8 @@ fun MapScreen(
     // Polyline for the route
     val routePolyline = remember { 
         Polyline().apply {
-            color = 0xFF008080.toInt() // TealPrimary
-            width = 12.0f
+            outlinePaint.color = 0xFF008080.toInt() // TealPrimary
+            outlinePaint.strokeWidth = 12.0f
         }
     }
 
@@ -165,38 +172,40 @@ fun MapScreen(
         val start = userLocation
         if (destinationPharmacyId != null) {
             val pharmacy = repository.getPharmacyDetails(destinationPharmacyId)
-            val destPoint = GeoPoint(pharmacy.latitude, pharmacy.longitude)
+            if (pharmacy != null) {
+                val destPoint = GeoPoint(pharmacy.latitude, pharmacy.longitude)
 
-            targetMarker.position = destPoint
-            targetMarker.title = "Target: ${pharmacy.name}"
-            if (!mapView.overlays.contains(targetMarker)) {
-                mapView.overlays.add(targetMarker)
-            }
-
-            if (start != null) {
-                isRouting = true
-                val routePoints = fetchRoute(start, destPoint, context)
-                routePolyline.setPoints(routePoints)
-
-                if (!mapView.overlays.contains(routePolyline)) {
-                    mapView.overlays.add(routePolyline)
+                targetMarker.position = destPoint
+                targetMarker.title = "Target: ${pharmacy.name}"
+                if (!mapView.overlays.contains(targetMarker)) {
+                    mapView.overlays.add(targetMarker)
                 }
 
-                // Zoom to fit the route once per new destination
-                if (destinationPharmacyId != lastRoutedDestinationId) {
-                    if (routePoints.size > 2) { // More than just start/end fallback
-                        try {
-                            val boundingBox = BoundingBox.fromGeoPoints(routePoints)
-                            mapView.zoomToBoundingBox(boundingBox.increaseByScale(1.3f), true)
-                        } catch (e: Exception) {
+                if (start != null) {
+                    isRouting = true
+                    val routePoints = fetchRoute(start, destPoint, context)
+                    routePolyline.setPoints(routePoints)
+
+                    if (!mapView.overlays.contains(routePolyline)) {
+                        mapView.overlays.add(routePolyline)
+                    }
+
+                    // Zoom to fit the route once per new destination
+                    if (destinationPharmacyId != lastRoutedDestinationId) {
+                        if (routePoints.size > 2) { // More than just start/end fallback
+                            try {
+                                val boundingBox = BoundingBox.fromGeoPoints(routePoints)
+                                mapView.zoomToBoundingBox(boundingBox.increaseByScale(1.3f), true)
+                            } catch (e: Exception) {
+                                mapView.controller.animateTo(destPoint)
+                            }
+                        } else {
                             mapView.controller.animateTo(destPoint)
                         }
-                    } else {
-                        mapView.controller.animateTo(destPoint)
+                        lastRoutedDestinationId = destinationPharmacyId
                     }
-                    lastRoutedDestinationId = destinationPharmacyId
+                    isRouting = false
                 }
-                isRouting = false
             }
             mapView.invalidate()
         } else {
@@ -229,14 +238,16 @@ fun MapScreen(
         floatingActionButton = {
             FloatingActionButton(
                 onClick = {
-                    locationOverlay.enableFollowLocation()
-                    userLocation?.let {
-                        mapView.controller.animateTo(it)
-                        mapView.controller.setZoom(17.5)
+                    if (hasLocationPermission) {
+                        locationOverlay.enableFollowLocation()
+                        userLocation?.let {
+                            mapView.controller.animateTo(it)
+                            mapView.controller.setZoom(17.5)
+                        }
                     }
                 },
-                containerColor = TealPrimary,
-                contentColor = Color.White
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary
             ) {
                 Icon(Icons.Default.MyLocation, contentDescription = "My Location")
             }
@@ -246,7 +257,7 @@ fun MapScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .background(Background)
+                .background(MaterialTheme.colorScheme.background)
         ) {
             AndroidView(
                 factory = { ctx ->
@@ -264,24 +275,17 @@ fun MapScreen(
                             locationOverlay.enableMyLocation()
                             locationOverlay.enableFollowLocation()
                         }
-
-                        // Dynamically add all pharmacies from the repository
-                        repository.getAllPharmacies().forEach { pharmacy ->
-                            addPharmacyMarker(
-                                this,
-                                "${pharmacy.name} (${pharmacy.location})",
-                                GeoPoint(pharmacy.latitude, pharmacy.longitude)
-                            ) { onNavigateToPharmacy(pharmacy.id) }
-                        }
                     }
                 },
                 update = { view ->
-                    // Navigation overlays are managed in LaunchedEffect
+                    // Markers and polylines are managed in LaunchedEffect
+                    pharmacies.forEach { pharmacy ->
+                        addPharmacyMarker(view, "${pharmacy.name} (${pharmacy.location})", GeoPoint(pharmacy.latitude, pharmacy.longitude)) { onNavigateToPharmacy(pharmacy.id) }
+                    }
                 },
                 modifier = Modifier.fillMaxSize()
             )
 
-            
             if (isRouting) {
                 Box(
                     modifier = Modifier
@@ -299,36 +303,48 @@ fun MapScreen(
                     .padding(16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                OutlinedTextField(
-                    value = locationSearchQuery,
-                    onValueChange = { 
-                        locationSearchQuery = it
-                        if (it.contains("Kampala", ignoreCase = true)) {
-                            mapView.controller.animateTo(GeoPoint(0.3476, 32.5825))
-                        } else if (it.contains("Jinja", ignoreCase = true)) {
-                            mapView.controller.animateTo(GeoPoint(0.4479, 33.2032))
-                        }
-                    },
+                Row(
                     modifier = Modifier.fillMaxWidth(),
-                    placeholder = { Text("Search location or pharmacy...") },
-                    shape = RoundedCornerShape(28.dp),
-                    leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null, tint = TealPrimary) },
-                    trailingIcon = {
-                        if (locationSearchQuery.isNotEmpty()) {
-                            IconButton(onClick = { locationSearchQuery = "" }) {
-                                Icon(Icons.Default.MyLocation, contentDescription = "Clear", tint = Color.Gray)
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    OutlinedTextField(
+                        value = locationSearchQuery,
+                        onValueChange = { 
+                            locationSearchQuery = it
+                            if (it.contains("Kampala", ignoreCase = true)) {
+                                mapView.controller.animateTo(GeoPoint(0.3476, 32.5825))
+                            } else if (it.contains("Jinja", ignoreCase = true)) {
+                                mapView.controller.animateTo(GeoPoint(0.4479, 33.2032))
                             }
-                        }
-                    },
-                    colors = TextFieldDefaults.colors(
-                        focusedContainerColor = Color.White,
-                        unfocusedContainerColor = Color.White,
-                        focusedIndicatorColor = TealPrimary,
-                        unfocusedIndicatorColor = Color.Transparent
-                    ),
-                    singleLine = true
-                )
-
+                        },
+                        modifier = Modifier.weight(1f),
+                        placeholder = { Text("Search location...", color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                        shape = RoundedCornerShape(28.dp),
+                        leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
+                        trailingIcon = {
+                            if (locationSearchQuery.isNotEmpty()) {
+                                IconButton(onClick = { locationSearchQuery = "" }) {
+                                    Icon(Icons.Default.MyLocation, contentDescription = "Clear", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                            }
+                        },
+                        colors = TextFieldDefaults.colors(
+                            focusedContainerColor = MaterialTheme.colorScheme.surface,
+                            unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                            focusedIndicatorColor = MaterialTheme.colorScheme.primary,
+                            unfocusedIndicatorColor = Color.Transparent,
+                            focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                            unfocusedTextColor = MaterialTheme.colorScheme.onSurface
+                        ),
+                        singleLine = true
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    NotificationBadge(
+                        onClick = onNotificationClick,
+                        iconColor = if (isDarkMode) Color.White else TealPrimary
+                    )
+                }
+                
                 if (destinationPharmacyId != null) {
                     Spacer(modifier = Modifier.height(8.dp))
                     Button(
@@ -350,17 +366,13 @@ private suspend fun fetchRoute(start: GeoPoint, end: GeoPoint, context: Context)
         val result = mutableListOf<GeoPoint>()
         var connection: HttpURLConnection? = null
         try {
-            // OSRM API expects longitude,latitude;longitude,latitude
             val urlString = "https://router.project-osrm.org/route/v1/driving/" +
                     "${start.longitude},${start.latitude};${end.longitude},${end.latitude}" +
                     "?overview=full&geometries=geojson"
             
-            android.util.Log.d("MapScreen", "Fetching route: $urlString")
-            
             val url = URL(urlString)
             connection = url.openConnection() as HttpURLConnection
             connection.requestMethod = "GET"
-            // Crucial: OSRM requires a descriptive User-Agent
             connection.setRequestProperty("User-Agent", "MedilinkApp/1.0 (" + context.packageName + ")")
             connection.connectTimeout = 10000
             connection.readTimeout = 10000
@@ -377,16 +389,10 @@ private suspend fun fetchRoute(start: GeoPoint, end: GeoPoint, context: Context)
                         val coordinates = geometry.getJSONArray("coordinates")
                         for (i in 0 until coordinates.length()) {
                             val coord = coordinates.getJSONArray(i)
-                            // GeoJSON coordinates are [longitude, latitude]
                             result.add(GeoPoint(coord.getDouble(1), coord.getDouble(0)))
                         }
-                        android.util.Log.d("MapScreen", "Successfully fetched ${result.size} road points")
                     }
-                } else {
-                    android.util.Log.e("MapScreen", "OSRM returned error code: ${jsonResponse.optString("code")}")
                 }
-            } else {
-                android.util.Log.e("MapScreen", "HTTP Error: $responseCode")
             }
         } catch (e: Exception) {
             android.util.Log.e("MapScreen", "Exception during route fetch", e)
@@ -395,7 +401,6 @@ private suspend fun fetchRoute(start: GeoPoint, end: GeoPoint, context: Context)
         }
         
         if (result.isEmpty()) {
-            android.util.Log.w("MapScreen", "No road points found, falling back to straight line")
             listOf(start, end)
         } else {
             result

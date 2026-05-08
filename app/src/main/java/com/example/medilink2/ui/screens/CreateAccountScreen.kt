@@ -2,7 +2,9 @@ package com.example.medilink2.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
@@ -38,6 +40,7 @@ fun CreateAccountScreen(
     var phoneNumber by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var selectedRole by remember { mutableStateOf(UserManager.UserRole.PATIENT) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var isLoading by remember { mutableStateOf(false) }
 
@@ -46,6 +49,7 @@ fun CreateAccountScreen(
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
             .padding(24.dp)
+            .verticalScroll(rememberScrollState())
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -78,7 +82,33 @@ fun CreateAccountScreen(
             modifier = Modifier.padding(top = 8.dp)
         )
 
-        Spacer(modifier = Modifier.height(48.dp))
+        Spacer(modifier = Modifier.height(32.dp))
+
+        Text(
+            text = "I am a:",
+            fontWeight = FontWeight.Bold,
+            fontSize = 14.sp,
+            color = MaterialTheme.colorScheme.onBackground
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            RoleOption(
+                text = "Patient",
+                isSelected = selectedRole == UserManager.UserRole.PATIENT,
+                onClick = { selectedRole = UserManager.UserRole.PATIENT },
+                modifier = Modifier.weight(1f)
+            )
+            RoleOption(
+                text = "Pharmacy Owner",
+                isSelected = selectedRole == UserManager.UserRole.PHARMACY_OWNER,
+                onClick = { selectedRole = UserManager.UserRole.PHARMACY_OWNER },
+                modifier = Modifier.weight(1f)
+            )
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
 
         InputField(
             label = "Full Name",
@@ -121,7 +151,7 @@ fun CreateAccountScreen(
             )
         }
 
-        Spacer(modifier = Modifier.weight(1f))
+        Spacer(modifier = Modifier.height(32.dp))
 
         Button(
             onClick = {
@@ -129,7 +159,7 @@ fun CreateAccountScreen(
                 if (fullName.isNotBlank() && phoneNumber.isNotBlank() && trimmedEmail.isNotBlank() && password.isNotBlank()) {
                     isLoading = true
                     errorMessage = null
-                    UserManager.registerUser(fullName, phoneNumber, trimmedEmail, password) { success, message ->
+                    UserManager.registerUser(fullName, phoneNumber, trimmedEmail, password, selectedRole) { success, message ->
                         isLoading = false
                         if (success) {
                             onAccountCreated()
@@ -169,6 +199,37 @@ fun CreateAccountScreen(
                         append("Sign In")
                     }
                 },
+                fontSize = 14.sp
+            )
+        }
+    }
+}
+
+@Composable
+fun RoleOption(
+    text: String,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        onClick = onClick,
+        modifier = modifier,
+        shape = RoundedCornerShape(12.dp),
+        color = if (isSelected) TealPrimary.copy(alpha = 0.1f) else MaterialTheme.colorScheme.surface,
+        border = androidx.compose.foundation.BorderStroke(
+            width = 2.dp,
+            color = if (isSelected) TealPrimary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.1f)
+        )
+    ) {
+        Box(
+            modifier = Modifier.padding(vertical = 12.dp, horizontal = 8.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = text,
+                color = if (isSelected) TealPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
                 fontSize = 14.sp
             )
         }

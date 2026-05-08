@@ -3,14 +3,17 @@ package com.example.medilink2.ui.screens
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -20,6 +23,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.medilink2.ui.theme.*
+import com.example.medilink2.ui.components.NotificationBadge
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.FirebaseDatabase
 
@@ -30,11 +34,14 @@ fun ProfileScreen(
     onNavigateToSearch: () -> Unit = {},
     onNavigateToNavigate: () -> Unit = {},
     onNavigateToEditProfile: () -> Unit = {},
-    onLogout: () -> Unit = {}
+    onNotificationClick: () -> Unit = {},
+    onLogout: () -> Unit = {},
+    isDarkMode: Boolean = false,
+    onToggleDarkMode: () -> Unit = {}
 ) {
     val auth = FirebaseAuth.getInstance()
     val user = auth.currentUser
-    var fullName by remember { mutableStateOf(user?.displayName ?: "Loading...") }
+    var fullName by rememberSaveable { mutableStateOf(user?.displayName ?: "Loading...") }
     val userEmail = user?.email ?: "No email"
 
     LaunchedEffect(user?.uid) {
@@ -49,6 +56,22 @@ fun ProfileScreen(
     }
 
     Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Profile", fontWeight = FontWeight.Bold) },
+                actions = {
+                    NotificationBadge(
+                        onClick = onNotificationClick,
+                        iconColor = MaterialTheme.colorScheme.onSurface
+                    )
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    titleContentColor = MaterialTheme.colorScheme.onSurface,
+                    actionIconContentColor = MaterialTheme.colorScheme.onSurface
+                )
+            )
+        },
         bottomBar = {
             BottomNavigationBar(
                 currentScreen = "Profile",
@@ -59,11 +82,13 @@ fun ProfileScreen(
             )
         }
     ) { paddingValues ->
+        val scrollState = rememberScrollState()
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .background(Background)
+                .background(MaterialTheme.colorScheme.background)
+                .verticalScroll(scrollState)
         ) {
             // Profile Header
             Box(
@@ -116,6 +141,12 @@ fun ProfileScreen(
                     onClick = onNavigateToEditProfile
                 )
                 
+                ProfileOptionItem(
+                    icon = if (isDarkMode) Icons.Default.LightMode else Icons.Default.DarkMode,
+                    label = if (isDarkMode) "Light Mode" else "Dark Mode",
+                    onClick = onToggleDarkMode
+                )
+                
                 Spacer(modifier = Modifier.height(24.dp))
                 
                 Button(
@@ -143,7 +174,7 @@ fun ProfileOptionItem(icon: ImageVector, label: String, onClick: () -> Unit = {}
             .fillMaxWidth()
             .padding(vertical = 4.dp),
         shape = RoundedCornerShape(12.dp),
-        color = Color.White,
+        color = MaterialTheme.colorScheme.surface,
         shadowElevation = 1.dp
     ) {
         Row(
@@ -152,10 +183,15 @@ fun ProfileOptionItem(icon: ImageVector, label: String, onClick: () -> Unit = {}
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(icon, contentDescription = null, tint = TealPrimary)
+            Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
             Spacer(modifier = Modifier.width(16.dp))
-            Text(label, modifier = Modifier.weight(1f), fontWeight = FontWeight.Medium)
-            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = Color.Gray)
+            Text(
+                label, 
+                modifier = Modifier.weight(1f), 
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }

@@ -4,26 +4,23 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import com.example.medilink2.ui.screens.CreateAccountScreen
-import com.example.medilink2.ui.screens.EditProfileScreen
-import com.example.medilink2.ui.screens.HomeScreen
-import com.example.medilink2.ui.screens.LoginScreen
-import com.example.medilink2.ui.screens.MapScreen
-import com.example.medilink2.ui.screens.OnboardingScreen
-import com.example.medilink2.ui.screens.PharmacyDetailScreen
-import com.example.medilink2.ui.screens.ProfileScreen
-import com.example.medilink2.ui.screens.SearchScreen
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import com.example.medilink2.data.UserManager
+import com.example.medilink2.data.local.SettingsManager
+import com.example.medilink2.ui.screens.*
 import com.example.medilink2.ui.theme.Medilink2Theme
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.FirebaseDatabase
+import kotlinx.coroutines.launch
 
 enum class Screen {
-    Onboarding, Login, Home, Search, CreateAccount, Profile, EditProfile, PharmacyDetail, Navigate, Notifications
+    Onboarding, Login, Home, Search, CreateAccount, Profile, EditProfile, Navigate, Notifications, PharmacyDetail, PharmacyDashboard
 }
 
 class MainActivity : ComponentActivity() {
@@ -37,113 +34,190 @@ class MainActivity : ComponentActivity() {
         myRef.setValue("Hello Firebase 🚀")
 
         setContent {
-            Medilink2Theme {
-                MainApp()
-            }
+            MainApp()
         }
     }
 }
 
 @Composable
 fun MainApp() {
+    val context = LocalContext.current
+    val settingsManager = remember { SettingsManager(context) }
+    val isDarkMode by settingsManager.isDarkMode.collectAsState(initial = false)
+    val coroutineScope = rememberCoroutineScope()
+    
     val auth = FirebaseAuth.getInstance()
-    var currentScreen by remember { 
-        mutableStateOf(if (auth.currentUser != null) Screen.Home else Screen.Onboarding) 
-    }
-    var selectedPharmacyId by remember { mutableStateOf("") }
-    var selectedDrugName by remember { mutableStateOf<String?>(null) }
-    var searchQuery by remember { mutableStateOf("") }
+    var userRole by remember { mutableStateOf<UserManager.UserRole?>(null) }
+    var isCheckingRole by remember { mutableStateOf(auth.currentUser != null) }
 
-    when (currentScreen) {
-        Screen.Onboarding -> OnboardingScreen(
-            onGetStarted = { currentScreen = Screen.CreateAccount },
-            onLogin = { currentScreen = Screen.Login }
-        )
-        Screen.Login -> LoginScreen(
-            onBackToOnboarding = { currentScreen = Screen.Onboarding },
-            onLoginSuccess = { currentScreen = Screen.Home },
-            onNavigateToSignUp = { currentScreen = Screen.CreateAccount }
-        )
-        Screen.CreateAccount -> CreateAccountScreen(
-            onBackToLogin = { currentScreen = Screen.Login },
-            onAccountCreated = { currentScreen = Screen.Home }
-        )
-        Screen.Home -> HomeScreen(
-            onNavigateToSearch = { 
-                searchQuery = ""
-                currentScreen = Screen.Search 
-            },
-            onNavigateToProfile = { currentScreen = Screen.Profile },
-            onNavigateToNotifications = { currentScreen = Screen.Notifications },
-            onNavigateToNavigate = { 
-                selectedPharmacyId = ""
-                currentScreen = Screen.Navigate 
-            },
-            onNavigateToPharmacy = { id ->
-                selectedPharmacyId = id
-                currentScreen = Screen.PharmacyDetail
+    LaunchedEffect(auth.currentUser) {
+        if (auth.currentUser != null) {
+            UserManager.getUserRole { role ->
+                userRole = role
+                isCheckingRole = false
             }
-        )
-        Screen.Search -> SearchScreen(
-            initialQuery = searchQuery,
-            onNavigateToHome = { currentScreen = Screen.Home },
-            onNavigateToPharmacy = { id, drugName ->
-                selectedPharmacyId = id
-                selectedDrugName = drugName
-                currentScreen = Screen.PharmacyDetail
-            },
-            onNavigateToNotifications = { currentScreen = Screen.Notifications },
-            onNavigateToNavigate = {
-                selectedPharmacyId = ""
-                selectedDrugName = null
-                currentScreen = Screen.Navigate
+        } else {
+            isCheckingRole = false
+        }
+    }
+
+    Medilink2Theme(darkTheme = isDarkMode) {
+        if (isCheckingRole) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
             }
-        )
-        Screen.Profile -> ProfileScreen(
-            onNavigateToHome = { currentScreen = Screen.Home },
-            onNavigateToSearch = { 
-                searchQuery = ""
-                currentScreen = Screen.Search
-            },
-            onNavigateToEditProfile = { currentScreen = Screen.EditProfile },
-            onLogout = { currentScreen = Screen.Login },
-            onNavigateToNavigate = {
-                selectedPharmacyId = ""
-                currentScreen = Screen.Navigate
+        } else {
+            var currentScreen by rememberSaveable { 
+                mutableStateOf(
+                    if (auth.currentUser != null) {
+                        if (userRole == UserManager.UserRole.PHARMACY_OWNER) Screen.PharmacyDashboard else Screen.Home
+                    } else Screen.Onboarding
+                ) 
             }
-        )
-        Screen.EditProfile -> EditProfileScreen(
-            onBack = { currentScreen = Screen.Profile },
-            onProfileUpdated = { currentScreen = Screen.Profile }
-        )
-        Screen.PharmacyDetail -> PharmacyDetailScreen(
-            pharmacyId = selectedPharmacyId,
-            highlightedDrug = selectedDrugName,
-            onBack = { currentScreen = Screen.Home },
-            onNavigateToNotifications = { currentScreen = Screen.Notifications },
-            onNavigateToNavigate = {
-                currentScreen = Screen.Navigate
+            
+            // Note: Since currentScreen is rememberSaveable, we might need to force update it when userRole changes if it was null initially
+            LaunchedEffect(userRole) {
+                if (auth.currentUser != null && userRole != null) {
+                    currentScreen = if (userRole == UserManager.UserRole.PHARMACY_OWNER) Screen.PharmacyDashboard else Screen.Home
+                }
             }
-        )
-        Screen.Navigate -> MapScreen(
-            destinationPharmacyId = selectedPharmacyId.takeIf { it.isNotEmpty() },
-            onNavigateToHome = { currentScreen = Screen.Home },
-            onNavigateToSearch = { query ->
-                searchQuery = query ?: ""
-                currentScreen = Screen.Search
-            },
-            onNavigateToProfile = { currentScreen = Screen.Profile },
-            onNavigateToNavigate = { 
-                selectedPharmacyId = ""
-                currentScreen = Screen.Navigate 
-            },
-            onNavigateToPharmacy = { id ->
-                selectedPharmacyId = id
-                currentScreen = Screen.PharmacyDetail
+
+            var selectedPharmacyId by rememberSaveable { mutableStateOf<String?>(null) }
+            var searchQuery by rememberSaveable { mutableStateOf<String?>(null) }
+            var highlightedDrug by rememberSaveable { mutableStateOf<String?>(null) }
+
+            when (currentScreen) {
+                Screen.Onboarding -> OnboardingScreen(
+                    onGetStarted = { currentScreen = Screen.CreateAccount },
+                    onLogin = { currentScreen = Screen.Login }
+                )
+                Screen.Login -> LoginScreen(
+                    onBackToOnboarding = { currentScreen = Screen.Onboarding },
+                    onLoginSuccess = { 
+                        UserManager.getUserRole { role ->
+                            userRole = role
+                            currentScreen = if (role == UserManager.UserRole.PHARMACY_OWNER) Screen.PharmacyDashboard else Screen.Home
+                        }
+                    },
+                    onNavigateToSignUp = { currentScreen = Screen.CreateAccount },
+                    isDarkMode = isDarkMode,
+                    onToggleDarkMode = {
+                        coroutineScope.launch { settingsManager.setDarkMode(!isDarkMode) }
+                    }
+                )
+                Screen.CreateAccount -> CreateAccountScreen(
+                    onBackToLogin = { currentScreen = Screen.Login },
+                    onAccountCreated = { 
+                        UserManager.getUserRole { role ->
+                            userRole = role
+                            currentScreen = if (role == UserManager.UserRole.PHARMACY_OWNER) Screen.PharmacyDashboard else Screen.Home
+                        }
+                    },
+                    isDarkMode = isDarkMode,
+                    onToggleDarkMode = {
+                        coroutineScope.launch { settingsManager.setDarkMode(!isDarkMode) }
+                    }
+                )
+                Screen.PharmacyDashboard -> PharmacyDashboardScreen(
+                    onLogout = { 
+                        auth.signOut()
+                        userRole = null
+                        currentScreen = Screen.Login 
+                    },
+                    isDarkMode = isDarkMode,
+                    onToggleDarkMode = {
+                        coroutineScope.launch { settingsManager.setDarkMode(!isDarkMode) }
+                    }
+                )
+                Screen.Home -> HomeScreen(
+                    onNavigateToSearch = { query ->
+                        searchQuery = query
+                        currentScreen = Screen.Search 
+                    },
+                    onNavigateToProfile = { currentScreen = Screen.Profile },
+                    onNavigateToNavigate = { currentScreen = Screen.Navigate },
+                    onNotificationClick = { currentScreen = Screen.Notifications },
+                    onPharmacyClick = { id ->
+                        selectedPharmacyId = id
+                        highlightedDrug = null
+                        currentScreen = Screen.PharmacyDetail
+                    },
+                    isDarkMode = isDarkMode,
+                    onToggleDarkMode = { 
+                        coroutineScope.launch { settingsManager.setDarkMode(!isDarkMode) }
+                    }
+                )
+                Screen.Navigate -> MapScreen(
+                    destinationPharmacyId = selectedPharmacyId,
+                    onNavigateToHome = { currentScreen = Screen.Home },
+                    onNavigateToSearch = { query ->
+                        searchQuery = query
+                        currentScreen = Screen.Search
+                    },
+                    onNavigateToProfile = { currentScreen = Screen.Profile },
+                    onNavigateToNavigate = { 
+                        selectedPharmacyId = null
+                        currentScreen = Screen.Navigate 
+                    },
+                    onNotificationClick = { currentScreen = Screen.Notifications },
+                    onNavigateToPharmacy = { id ->
+                        selectedPharmacyId = id
+                        highlightedDrug = null
+                        currentScreen = Screen.PharmacyDetail
+                    },
+                    isDarkMode = isDarkMode
+                )
+                Screen.Search -> SearchScreen(
+                    initialQuery = searchQuery,
+                    onNavigateToHome = { currentScreen = Screen.Home },
+                    onNavigateToSearch = { currentScreen = Screen.Search },
+                    onNavigateToProfile = { currentScreen = Screen.Profile },
+                    onNavigateToNavigate = { currentScreen = Screen.Navigate },
+                    onNotificationClick = { currentScreen = Screen.Notifications },
+                    onNavigateToPharmacy = { id, drug ->
+                        selectedPharmacyId = id
+                        highlightedDrug = drug
+                        currentScreen = Screen.PharmacyDetail
+                    },
+                    isDarkMode = isDarkMode,
+                    onToggleDarkMode = { 
+                        coroutineScope.launch { settingsManager.setDarkMode(!isDarkMode) }
+                    }
+                )
+                Screen.Profile -> ProfileScreen(
+                    onNavigateToHome = { currentScreen = Screen.Home },
+                    onNavigateToSearch = { currentScreen = Screen.Search },
+                    onNavigateToNavigate = { currentScreen = Screen.Navigate },
+                    onNavigateToEditProfile = { currentScreen = Screen.EditProfile },
+                    onNotificationClick = { currentScreen = Screen.Notifications },
+                    onLogout = { currentScreen = Screen.Login },
+                    isDarkMode = isDarkMode,
+                    onToggleDarkMode = { 
+                        coroutineScope.launch { settingsManager.setDarkMode(!isDarkMode) }
+                    }
+                )
+                Screen.EditProfile -> EditProfileScreen(
+                    onBack = { currentScreen = Screen.Profile },
+                    onProfileUpdated = { currentScreen = Screen.Profile }
+                )
+                Screen.Notifications -> NotificationScreen(
+                    onBack = { currentScreen = Screen.Home }
+                )
+                Screen.PharmacyDetail -> PharmacyDetailScreen(
+                    pharmacyId = selectedPharmacyId ?: "1",
+                    highlightedDrug = highlightedDrug,
+                    onBack = { currentScreen = Screen.Search },
+                    onNavigateToMap = { id ->
+                        selectedPharmacyId = id
+                        currentScreen = Screen.Navigate
+                    },
+                    onNotificationClick = { currentScreen = Screen.Notifications },
+                    isDarkMode = isDarkMode,
+                    onToggleDarkMode = { 
+                        coroutineScope.launch { settingsManager.setDarkMode(!isDarkMode) }
+                    }
+                )
             }
-        )
-        Screen.Notifications -> com.example.medilink2.ui.screens.NotificationScreen(
-            onBack = { currentScreen = Screen.Home }
-        )
+        }
     }
 }

@@ -8,11 +8,16 @@ object UserManager {
     private val auth = FirebaseAuth.getInstance()
     private val database = FirebaseDatabase.getInstance().getReference("users")
 
+    enum class UserRole {
+        PATIENT, PHARMACY_OWNER
+    }
+
     fun registerUser(
         fullName: String,
         phoneNumber: String,
         email: String,
         password: String,
+        role: UserRole = UserRole.PATIENT,
         onResult: (Boolean, String?) -> Unit
     ) {
         auth.createUserWithEmailAndPassword(email, password)
@@ -21,7 +26,6 @@ object UserManager {
                     val user = auth.currentUser
                     val userId = user?.uid
                     if (userId != null) {
-                        // Update Firebase Auth Display Name
                         val profileUpdates = UserProfileChangeRequest.Builder()
                             .setDisplayName(fullName)
                             .build()
@@ -30,7 +34,8 @@ object UserManager {
                             val userMap = mapOf(
                                 "fullName" to fullName,
                                 "phoneNumber" to phoneNumber,
-                                "email" to email
+                                "email" to email,
+                                "role" to role.name
                             )
                             database.child(userId).setValue(userMap)
                                 .addOnCompleteListener { dbTask ->
@@ -50,6 +55,21 @@ object UserManager {
             }
     }
 
+    fun getUserRole(onResult: (UserRole?) -> Unit) {
+        val userId = getUserId()
+        if (userId == null) {
+            onResult(null)
+            return
+        }
+        database.child(userId).child("role").get().addOnSuccessListener { snapshot ->
+            val roleStr = snapshot.value as? String
+            val role = roleStr?.let { UserRole.valueOf(it) } ?: UserRole.PATIENT
+            onResult(role)
+        }.addOnFailureListener {
+            onResult(null)
+        }
+    }
+
     fun loginUser(email: String, password: String, onResult: (Boolean, String?) -> Unit) {
         auth.signInWithEmailAndPassword(email, password)
             .addOnCompleteListener { task ->
@@ -63,14 +83,8 @@ object UserManager {
 
     fun getUserId(): String? = auth.currentUser?.uid
 
-    fun updateFcmToken(token: String? = null) {
+    fun updateFcmToken(token: String) {
         val userId = auth.currentUser?.uid ?: return
-        
-        if (token != null) {
-            database.child(userId).child("fcmToken").setValue(token)
-        } else {
-            // If token is not provided, we might want to fetch it and update, 
-            // but usually this is called from onNewToken or after login.
-        }
+        database.child(userId).child("fcmToken").setValue(token)
     }
 }

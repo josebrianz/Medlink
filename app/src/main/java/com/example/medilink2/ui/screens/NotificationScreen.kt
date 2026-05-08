@@ -47,7 +47,9 @@ fun NotificationScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.White,
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    titleContentColor = MaterialTheme.colorScheme.onSurface,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onSurface
                 ),
             )
         }
@@ -64,10 +66,14 @@ fun NotificationScreen(
                         Icons.Default.Notifications,
                         contentDescription = null,
                         modifier = Modifier.size(64.dp),
-                        tint = Color.LightGray
+                        tint = MaterialTheme.colorScheme.outlineVariant
                     )
                     Spacer(modifier = Modifier.height(16.dp))
-                    Text("No notifications yet", color = Color.Gray)
+                    Text(
+                        "No notifications yet",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontSize = 16.sp
+                    )
                 }
             }
         } else {
@@ -75,7 +81,7 @@ fun NotificationScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues)
-                    .background(Background),
+                    .background(MaterialTheme.colorScheme.background),
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
@@ -106,7 +112,7 @@ fun NotificationItem(
             .clickable { onClick() },
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = if (notification.status == "notified") Color.White else Color(0xFFF5F5F5)
+            containerColor = if (notification.status == "notified") MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.surfaceVariant
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = if (notification.status == "notified") 2.dp else 0.dp)
     ) {
@@ -118,12 +124,12 @@ fun NotificationItem(
                 modifier = Modifier
                     .size(48.dp)
                     .background(
-                        if (notification.status == "notified") TealPrimary else Color.Gray,
+                        if (notification.status == "notified") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
                         CircleShape
                     ),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(Icons.Default.Notifications, contentDescription = null, tint = Color.White)
+                Icon(Icons.Default.Notifications, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimary)
             }
             Spacer(modifier = Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
@@ -131,19 +137,19 @@ fun NotificationItem(
                     text = if (notification.status == "waiting") "Waiting for stock..." else "Medicine Available!",
                     fontWeight = FontWeight.Bold,
                     fontSize = 16.sp,
-                    color = if (notification.status == "notified") TealPrimary else TextPrimary
+                    color = if (notification.status == "notified") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
                 )
                 Text(
                     text = "${notification.drugName} is ${if (notification.status == "waiting") "currently out of stock" else "now available"} at ${notification.pharmacyName}.",
                     fontSize = 14.sp,
-                    color = TextSecondary
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             if (notification.status == "notified") {
                 Box(
                     modifier = Modifier
                         .size(8.dp)
-                        .background(TealPrimary, CircleShape)
+                        .background(MaterialTheme.colorScheme.primary, CircleShape)
                 )
             }
         }

@@ -4,27 +4,63 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
-import com.example.medilink2.ui.screens.SearchResult
-
+import androidx.lifecycle.viewModelScope
 import com.example.medilink2.data.PharmacyRepository
+import com.example.medilink2.ui.components.DrugItem
+import com.example.medilink2.ui.screens.SearchResult
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 
 class SearchViewModel : ViewModel() {
     private val repository = PharmacyRepository()
     var searchQuery by mutableStateOf("")
         private set
 
-    val allResults = repository.getAllPharmacies().map { details ->
-        SearchResult(
-            id = details.id,
-            name = details.name,
-            location = details.location,
-            distance = details.distance,
-            price = "UGX 3,000", // Simplified for demo
-            rating = details.rating,
-            closingTime = details.closingTime,
-            inStock = true,
-            tags = listOf("General") // Tags could be added to PharmacyDetails later
-        )
+    private val _allResults = MutableStateFlow<List<SearchResult>>(emptyList())
+    
+    val resultsState: StateFlow<List<SearchResult>> = combine(
+        repository.getAllPharmacies(),
+        MutableStateFlow(searchQuery) 
+    ) { pharmacies, _ ->
+        pharmacies.map { details ->
+            SearchResult(
+                id = details.id,
+                name = details.name,
+                location = details.location,
+                distance = details.distance,
+                price = "Varies",
+                rating = details.rating,
+                closingTime = details.closingTime,
+                inStock = details.isOpen,
+                tags = listOf("General")
+            )
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    var allResults by mutableStateOf<List<SearchResult>>(emptyList())
+
+    init {
+        viewModelScope.launch {
+            repository.getAllPharmacies().collect { pharmacies ->
+                allResults = pharmacies.map { details ->
+                    SearchResult(
+                        id = details.id,
+                        name = details.name,
+                        location = details.location,
+                        distance = details.distance,
+                        price = "Varies",
+                        rating = details.rating,
+                        closingTime = details.closingTime,
+                        inStock = details.isOpen,
+                        tags = listOf("General")
+                    )
+                }
+            }
+        }
     }
 
     fun onSearchQueryChange(newQuery: String) {
@@ -63,7 +99,7 @@ class SearchViewModel : ViewModel() {
         return (pharmacies + pharmaciesByDrug).distinctBy { it.id }
     }
 
-    fun getMatchingDrugs(): List<com.example.medilink2.ui.screens.DrugItem> {
+    fun getMatchingDrugs(): List<DrugItem> {
         if (searchQuery.isBlank()) return emptyList()
         return repository.searchDrugs(searchQuery)
     }

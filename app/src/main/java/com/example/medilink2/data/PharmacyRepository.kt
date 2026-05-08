@@ -1,13 +1,24 @@
 package com.example.medilink2.data
 
-import com.example.medilink2.ui.screens.DrugItem
+import com.example.medilink2.data.local.DrugEntity
+import com.example.medilink2.data.local.PharmacyDao
+import com.example.medilink2.data.local.PharmacyEntity
+import com.example.medilink2.ui.components.DrugItem
 import com.example.medilink2.ui.screens.PharmacyDetails
+import com.google.firebase.database.FirebaseDatabase
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.tasks.await
 
 /**
  * Repository responsible for retrieving pharmacy inventory and price details.
- * In a real app, this would fetch data from a Room database or a Remote API.
+ * It uses Firebase Realtime Database for live data and Room for local caching.
  */
-class PharmacyRepository {
+class PharmacyRepository(private val pharmacyDao: PharmacyDao? = null) {
+
+    private val database = FirebaseDatabase.getInstance()
+    private val pharmaciesRef = database.getReference("pharmacies")
 
     private val pharmacyData = listOf(
         PharmacyDetails("1", "MedPlus Pharmacy", "Kampala Road, Plot 23", "0.8 km", "4.8", "9:00 PM", emptyList(), 0.3136, 32.5811),
@@ -50,11 +61,128 @@ class PharmacyRepository {
         DrugItem(id = "25", name = "Piriton", category = "Allergy", price = "UGX 2,500", inStock = true, stockLevel = "Medium"),
     )
 
-    fun getAllPharmacies(): List<PharmacyDetails> = pharmacyData
+    fun getAllPharmaciesOld(): List<PharmacyDetails> = pharmacyData
 
-    fun getPharmacyDetails(pharmacyId: String): PharmacyDetails {
-        val base = pharmacyData.find { it.id == pharmacyId } ?: pharmacyData[0]
-        return base.copy(inventory = getInventoryForPharmacy(pharmacyId))
+    fun getAllPharmacies(): Flow<List<PharmacyEntity>> = callbackFlow {
+        val listener = pharmaciesRef.addValueEventListener(object : com.google.firebase.database.ValueEventListener {
+            override fun onDataChange(snapshot: com.google.firebase.database.DataSnapshot) {
+                val pharmacies = snapshot.children.mapNotNull { child ->
+                    val id = child.key ?: return@mapNotNull null
+                    val name = child.child("name").value as? String ?: ""
+                    val location = child.child("location").value as? String ?: ""
+                    val rating = child.child("rating").value as? String ?: "0.0"
+                    val closingTime = child.child("closingTime").value as? String ?: "9:00 PM"
+                    val lat = (child.child("latitude").value as? Number)?.toDouble() ?: 0.3136
+                    val lon = (child.child("longitude").value as? Number)?.toDouble() ?: 32.5811
+                    
+                    PharmacyEntity(
+                        id = id,
+                        name = name,
+                        location = location,
+                        distance = "1.2 km", // Mock distance for now
+                        rating = rating,
+                        closingTime = closingTime,
+                        isOpen = true,
+                        latitude = lat,
+                        longitude = lon
+                    )
+                }
+                trySend(pharmacies)
+            }
+
+            override fun onCancelled(error: com.google.firebase.database.DatabaseError) {
+                close(error.toException())
+            }
+        })
+        awaitClose { pharmaciesRef.removeEventListener(listener) }
+    }
+
+    fun getAllPharmaciesFromCache(): Flow<List<PharmacyEntity>> {
+        return pharmacyDao?.getAllPharmacies() ?: kotlinx.coroutines.flow.flowOf(emptyList())
+    }
+
+    suspend fun cachePharmacies(pharmacies: List<PharmacyEntity>) {
+        pharmacyDao?.insertPharmacies(pharmacies)
+    }
+
+    fun getDrugsForPharmacy(pharmacyId: String): Flow<List<DrugItem>> = callbackFlow {
+        val drugsRef = pharmaciesRef.child(pharmacyId).child("drugs")
+        val listener = drugsRef.addValueEventListener(object : com.google.firebase.database.ValueEventListener {
+            override fun onDataChange(snapshot: com.google.firebase.database.DataSnapshot) {
+                val drugs = snapshot.children.mapNotNull { child ->
+                    val id = child.key ?: return@mapNotNull null
+                    val name = child.child("name").value as? String ?: ""
+                    val category = child.child("category").value as? String ?: ""
+                    val price = child.child("price").value as? String ?: ""
+                    val stockLevel = child.child("stockLevel").value?.toString() ?: "0"
+                    val inStock = child.child("inStock").value as? Boolean ?: (stockLevel.toIntOrNull() ?: 0 > 0)
+                    
+                    DrugItem(
+                        id = id,
+                        name = name,
+                        category = category,
+                        price = price,
+                        inStock = inStock,
+                        stockLevel = stockLevel
+                    )
+                }
+                trySend(drugs)
+            }
+
+            override fun onCancelled(error: com.google.firebase.database.DatabaseError) {
+                close(error.toException())
+            }
+        })
+        awaitClose { drugsRef.removeEventListener(listener) }
+    }
+
+    private fun DrugEntity.toUiModel() = DrugItem(
+        id = id,
+        name = name,
+        category = category,
+        price = price,
+        inStock = inStock,
+        stockLevel = stockLevel
+    )
+
+    suspend fun getPharmacyDetails(pharmacyId: String): PharmacyDetails? {
+        val snapshot = pharmaciesRef.child(pharmacyId).get().await()
+        if (!snapshot.exists()) {
+            // Fallback to mock data if not in Firebase yet
+            val base = pharmacyData.find { it.id == pharmacyId } ?: return null
+            return base.copy(inventory = getInventoryForPharmacy(pharmacyId))
+        }
+
+        val name = snapshot.child("name").value as? String ?: ""
+        val location = snapshot.child("location").value as? String ?: ""
+        val rating = snapshot.child("rating").value as? String ?: "0.0"
+        val closingTime = snapshot.child("closingTime").value as? String ?: "9:00 PM"
+        val lat = (snapshot.child("latitude").value as? Number)?.toDouble() ?: 0.3136
+        val lon = (snapshot.child("longitude").value as? Number)?.toDouble() ?: 32.5811
+        
+        val drugsSnapshot = snapshot.child("drugs")
+        val drugsList = drugsSnapshot.children.mapNotNull { child ->
+            val id = child.key ?: return@mapNotNull null
+            val drugName = child.child("name").value as? String ?: ""
+            val category = child.child("category").value as? String ?: ""
+            val price = child.child("price").value as? String ?: ""
+            val stockLevel = child.child("stockLevel").value?.toString() ?: "0"
+            val inStock = child.child("inStock").value as? Boolean ?: (stockLevel.toIntOrNull() ?: 0 > 0)
+            
+            DrugItem(id, drugName, category, price, inStock, stockLevel)
+        }
+
+        return PharmacyDetails(
+            id = pharmacyId,
+            name = name,
+            location = location,
+            distance = "1.2 km",
+            rating = rating,
+            closingTime = closingTime,
+            inventory = drugsList,
+            latitude = lat,
+            longitude = lon
+        )
     }
 
     fun searchDrugs(query: String): List<DrugItem> {

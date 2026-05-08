@@ -2,7 +2,9 @@ package com.example.medilink2.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.Call
@@ -16,6 +18,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.medilink2.ui.theme.TealPrimary
+import com.example.medilink2.ui.components.NotificationBadge
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.UserProfileChangeRequest
 import com.google.firebase.database.FirebaseDatabase
@@ -24,6 +27,7 @@ import com.google.firebase.database.FirebaseDatabase
 @Composable
 fun EditProfileScreen(
     onBack: () -> Unit = {},
+    onNotificationClick: () -> Unit = {},
     onProfileUpdated: () -> Unit = {}
 ) {
     val auth = FirebaseAuth.getInstance()
@@ -57,8 +61,16 @@ fun EditProfileScreen(
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
+                actions = {
+                    NotificationBadge(
+                        onClick = onNotificationClick,
+                        iconColor = MaterialTheme.colorScheme.onSurface
+                    )
+                },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = Color.White
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    titleContentColor = MaterialTheme.colorScheme.onSurface,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onSurface
                 )
             )
         }
@@ -68,11 +80,13 @@ fun EditProfileScreen(
                 CircularProgressIndicator(color = TealPrimary)
             }
         } else {
+            val scrollState = rememberScrollState()
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues)
-                    .background(Color.White)
+                    .background(MaterialTheme.colorScheme.background)
+                    .verticalScroll(scrollState)
                     .padding(24.dp)
             ) {
                 InputField(

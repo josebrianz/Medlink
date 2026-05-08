@@ -9,22 +9,26 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
-import androidx.compose.material.icons.outlined.DarkMode
-import androidx.compose.material.icons.outlined.LightMode
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.outlined.DarkMode
-import androidx.compose.material.icons.outlined.LightMode
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.input.ImeAction
 import com.example.medilink2.ui.theme.*
+import com.example.medilink2.ui.components.NotificationBadge
+import com.example.medilink2.ui.screens.BottomNavigationBar
+import com.example.medilink2.ui.viewmodel.SearchViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
 
 data class SearchResult(
     val id: String = "",
@@ -44,19 +48,24 @@ data class SearchResult(
 fun SearchScreen(
     initialQuery: String? = null,
     onNavigateToHome: () -> Unit = {},
-    onNavigateToPharmacy: (String, String?) -> Unit = { _, _ -> },
-    onNavigateToNotifications: () -> Unit = {},
+    onNavigateToSearch: () -> Unit = {},
+    onNavigateToProfile: () -> Unit = {},
     onNavigateToNavigate: () -> Unit = {},
-    isDarkMode: Boolean = false,
+    onNotificationClick: () -> Unit = {},
+    onNavigateToPharmacy: (String, String?) -> Unit = { _, _ -> },
     onToggleDarkMode: () -> Unit = {},
-    viewModel: com.example.medilink2.ui.viewmodel.SearchViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+    isDarkMode: Boolean = false,
+    viewModel: SearchViewModel = viewModel()
 ) {
+    val focusManager = LocalFocusManager.current
+
     LaunchedEffect(initialQuery) {
         viewModel.setInitialQuery(initialQuery)
     }
 
     val searchQuery = viewModel.searchQuery
     val filteredResults = viewModel.getFilteredResults()
+    val matchingDrugs = viewModel.getMatchingDrugs()
 
     Scaffold(
         topBar = {
@@ -74,6 +83,10 @@ fun SearchScreen(
                             contentDescription = "Toggle Theme"
                         )
                     }
+                    NotificationBadge(
+                        onClick = onNotificationClick,
+                        iconColor = MaterialTheme.colorScheme.onSurface
+                    )
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surface,
@@ -87,9 +100,9 @@ fun SearchScreen(
             BottomNavigationBar(
                 currentScreen = "Search", 
                 onNavigateToHome = onNavigateToHome,
-                onNavigateToSearch = { /* Already here */ },
-                onNavigateToNavigate = onNavigateToNavigate,
-                onNavigateToProfile = { /* No profile yet */ }
+                onNavigateToSearch = onNavigateToSearch,
+                onNavigateToProfile = onNavigateToProfile,
+                onNavigateToNavigate = onNavigateToNavigate
             ) 
         }
     ) { paddingValues ->
@@ -106,7 +119,11 @@ fun SearchScreen(
                     modifier = Modifier.fillMaxWidth(),
                     placeholder = { Text("Search for medicines...") },
                     shape = RoundedCornerShape(28.dp),
-                    leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null) },
+                    leadingIcon = { 
+                        IconButton(onClick = { focusManager.clearFocus() }) {
+                            Icon(Icons.Outlined.Search, contentDescription = "Search")
+                        }
+                    },
                     trailingIcon = {
                         if (searchQuery.isNotEmpty()) {
                             IconButton(onClick = { viewModel.onSearchQueryChange("") }) {
@@ -114,6 +131,8 @@ fun SearchScreen(
                             }
                         }
                     },
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                    keyboardActions = KeyboardActions(onSearch = { focusManager.clearFocus() }),
                     colors = TextFieldDefaults.colors(
                         focusedContainerColor = MaterialTheme.colorScheme.surface,
                         unfocusedContainerColor = MaterialTheme.colorScheme.surface,
@@ -125,27 +144,58 @@ fun SearchScreen(
                 )
             }
 
-            if (searchQuery.isNotEmpty() && filteredResults.isNotEmpty()) {
+            if (searchQuery.isNotEmpty()) {
                 Text(
                     text = "Results for \"$searchQuery\"",
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                     fontWeight = FontWeight.Bold,
-                    color = TextSecondary
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             } else {
                 Text(
                     text = "All Nearby Pharmacies",
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                     fontWeight = FontWeight.Bold,
-                    color = TextSecondary
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
 
             LazyColumn(
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier.weight(1f),
                 contentPadding = PaddingValues(bottom = 16.dp)
             ) {
-                val matchingDrugs = viewModel.getMatchingDrugs()
+                // Empty State
+                if (searchQuery.isNotEmpty() && matchingDrugs.isEmpty() && filteredResults.isEmpty()) {
+                    item {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 64.dp, horizontal = 32.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Search,
+                                contentDescription = null,
+                                modifier = Modifier.size(64.dp).alpha(0.3f),
+                                tint = MaterialTheme.colorScheme.onSurface
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text(
+                                text = "No pharmacies stocking this",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = "Try searching for another medicine or check your spelling.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                            )
+                        }
+                    }
+                }
 
                 if (matchingDrugs.isNotEmpty()) {
                     item {
@@ -153,12 +203,14 @@ fun SearchScreen(
                             "Matching Medicines",
                             modifier = Modifier.padding(16.dp),
                             style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onBackground
                         )
                     }
                     items(matchingDrugs) { drug ->
                         SimpleDrugCard(drug.name) {
                             viewModel.onSearchQueryChange(drug.name)
+                            focusManager.clearFocus()
                         }
                     }
                 }
@@ -169,7 +221,8 @@ fun SearchScreen(
                             "Nearby Pharmacies",
                             modifier = Modifier.padding(16.dp),
                             style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onBackground
                         )
                     }
                 }
@@ -178,7 +231,7 @@ fun SearchScreen(
                     SearchResultCard(
                         result = result,
                         isSearching = searchQuery.isNotEmpty(),
-                        onClick = { onNavigateToPharmacy(result.id, if (matchingDrugs.isNotEmpty()) searchQuery else null) }
+                        onClick = { onNavigateToPharmacy(result.id, if (matchingDrugs.isNotEmpty()) result.name else searchQuery) }
                     )
                 }
             }
@@ -201,9 +254,9 @@ fun SimpleDrugCard(name: String, onClick: () -> Unit) {
             modifier = Modifier.padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(Icons.Default.MedicalServices, contentDescription = null, tint = TealPrimary, modifier = Modifier.size(20.dp))
+            Icon(Icons.Default.MedicalServices, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
             Spacer(modifier = Modifier.width(12.dp))
-            Text(name, fontWeight = FontWeight.Medium, fontSize = 16.sp)
+            Text(name, fontWeight = FontWeight.Medium, fontSize = 16.sp, color = MaterialTheme.colorScheme.onSurface)
         }
     }
 }
