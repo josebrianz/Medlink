@@ -129,7 +129,10 @@ fun MainApp() {
                 currentScreen = Screen.Search
             },
             onNavigateToProfile = { currentScreen = Screen.Profile },
-            onNavigateToNavigate = { currentScreen = Screen.Navigate },
+            onNavigateToNavigate = { 
+                selectedPharmacyId = ""
+                currentScreen = Screen.Navigate 
+            },
             onNavigateToPharmacy = { id ->
                 selectedPharmacyId = id
                 currentScreen = Screen.PharmacyDetail
