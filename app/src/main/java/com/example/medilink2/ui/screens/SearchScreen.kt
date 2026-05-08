@@ -178,7 +178,7 @@ fun SearchScreen(
                     SearchResultCard(
                         result = result,
                         isSearching = searchQuery.isNotEmpty(),
-                        onClick = { onNavigateToPharmacy(result.name, null) }
+                        onClick = { onNavigateToPharmacy(result.id, if (matchingDrugs.isNotEmpty()) searchQuery else null) }
                     )
                 }
             }

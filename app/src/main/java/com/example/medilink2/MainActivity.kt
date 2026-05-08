@@ -51,6 +51,7 @@ fun MainApp() {
         mutableStateOf(if (auth.currentUser != null) Screen.Home else Screen.Onboarding) 
     }
     var selectedPharmacyId by remember { mutableStateOf("") }
+    var selectedDrugName by remember { mutableStateOf<String?>(null) }
     var searchQuery by remember { mutableStateOf("") }
 
     when (currentScreen) {
@@ -86,13 +87,15 @@ fun MainApp() {
         Screen.Search -> SearchScreen(
             initialQuery = searchQuery,
             onNavigateToHome = { currentScreen = Screen.Home },
-            onNavigateToPharmacy = { id ->
+            onNavigateToPharmacy = { id, drugName ->
                 selectedPharmacyId = id
+                selectedDrugName = drugName
                 currentScreen = Screen.PharmacyDetail
             },
             onNavigateToNotifications = { currentScreen = Screen.Notifications },
             onNavigateToNavigate = {
                 selectedPharmacyId = ""
+                selectedDrugName = null
                 currentScreen = Screen.Navigate
             }
         )
@@ -115,6 +118,7 @@ fun MainApp() {
         )
         Screen.PharmacyDetail -> PharmacyDetailScreen(
             pharmacyId = selectedPharmacyId,
+            highlightedDrug = selectedDrugName,
             onBack = { currentScreen = Screen.Home },
             onNavigateToNotifications = { currentScreen = Screen.Notifications },
             onNavigateToNavigate = {

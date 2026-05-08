@@ -63,7 +63,7 @@ class SearchViewModel : ViewModel() {
         return (pharmacies + pharmaciesByDrug).distinctBy { it.id }
     }
 
-    fun getMatchingDrugs(): List<com.example.medilink2.ui.components.DrugItem> {
+    fun getMatchingDrugs(): List<com.example.medilink2.ui.screens.DrugItem> {
         if (searchQuery.isBlank()) return emptyList()
         return repository.searchDrugs(searchQuery)
     }

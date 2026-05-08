@@ -116,7 +116,7 @@ fun PharmacyDetailScreen(
                     }
                     Spacer(modifier = Modifier.height(16.dp))
                     Button(
-                        onClick = { /* Navigation logic */ },
+                        onClick = onNavigateToNavigate,
                         modifier = Modifier.fillMaxWidth(),
                         colors = ButtonDefaults.buttonColors(containerColor = TealPrimary),
                         shape = RoundedCornerShape(12.dp)
@@ -126,19 +126,6 @@ fun PharmacyDetailScreen(
                         Text("Navigate to Pharmacy")
                     }
                 }
-            }
-
-            Button(
-                onClick = onNavigateToNavigate,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = TealPrimary),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Icon(Icons.Default.Directions, contentDescription = null)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Navigate to Pharmacy")
             }
 
             Text(
@@ -161,7 +148,9 @@ fun PharmacyDetailScreen(
     }
 }
 
+
 data class DrugItem(
+    val id: String = "",
     val name: String,
     val category: String,
     val price: String,
