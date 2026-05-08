@@ -1,6 +1,6 @@
 package com.example.medilink2.data
 
-import com.example.medilink2.ui.components.DrugItem
+import com.example.medilink2.ui.screens.DrugItem
 import com.example.medilink2.ui.screens.PharmacyDetails
 
 /**
@@ -65,15 +65,12 @@ class PharmacyRepository {
     }
 
     fun getPharmaciesStocking(drugName: String): List<PharmacyDetails> {
-        // In a real app, this would query which pharmacies have this drug.
-        // For demo, we return pharmacies that have this drug in their randomized inventory.
         return pharmacyData.filter { pharmacy ->
             getInventoryForPharmacy(pharmacy.id).any { it.name.contains(drugName, ignoreCase = true) }
         }
     }
 
     private fun getInventoryForPharmacy(pharmacyId: String): List<DrugItem> {
-        // Return a randomized subset of items so different pharmacies look different
         val random = java.util.Random(pharmacyId.hashCode().toLong())
         return fullInventory.shuffled(random).take(8 + random.nextInt(7))
     }

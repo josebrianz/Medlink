@@ -9,8 +9,14 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
+import androidx.compose.material.icons.outlined.DarkMode
+import androidx.compose.material.icons.outlined.LightMode
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.outlined.DarkMode
+import androidx.compose.material.icons.outlined.LightMode
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -18,13 +24,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.medilink2.ui.components.DrugItem
-import com.example.medilink2.ui.components.DrugStockCard
-import com.example.medilink2.ui.components.NotificationBadge
 import com.example.medilink2.ui.theme.*
 
 data class SearchResult(
-    val id: String,
+    val id: String = "",
     val name: String,
     val location: String,
     val distance: String,
@@ -32,7 +35,8 @@ data class SearchResult(
     val rating: String,
     val closingTime: String,
     val inStock: Boolean,
-    val tags: List<String> = emptyList(),
+    val stockLevel: String = "Medium",
+    val tags: List<String> = emptyList()
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -40,9 +44,11 @@ data class SearchResult(
 fun SearchScreen(
     initialQuery: String? = null,
     onNavigateToHome: () -> Unit = {},
-    onNavigateToPharmacy: (String) -> Unit = {},
+    onNavigateToPharmacy: (String, String?) -> Unit = { _, _ -> },
     onNavigateToNotifications: () -> Unit = {},
     onNavigateToNavigate: () -> Unit = {},
+    isDarkMode: Boolean = false,
+    onToggleDarkMode: () -> Unit = {},
     viewModel: com.example.medilink2.ui.viewmodel.SearchViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
 ) {
     LaunchedEffect(initialQuery) {
@@ -55,14 +61,26 @@ fun SearchScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Search", fontWeight = FontWeight.Bold) },
-                actions = {
-                    NotificationBadge(
-                        onClick = onNavigateToNotifications,
-                        iconColor = TealPrimary,
-                    )
+                title = { Text("Search Medicines", fontWeight = FontWeight.Bold) },
+                navigationIcon = {
+                    IconButton(onClick = onNavigateToHome) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White),
+                actions = {
+                    IconButton(onClick = onToggleDarkMode) {
+                        Icon(
+                            imageVector = if (isDarkMode) Icons.Outlined.LightMode else Icons.Outlined.DarkMode,
+                            contentDescription = "Toggle Theme"
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    titleContentColor = MaterialTheme.colorScheme.onSurface,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onSurface,
+                    actionIconContentColor = MaterialTheme.colorScheme.onSurface
+                )
             )
         },
         bottomBar = { 
@@ -79,7 +97,7 @@ fun SearchScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .background(Background)
+                .background(MaterialTheme.colorScheme.background)
         ) {
             Box(modifier = Modifier.padding(16.dp)) {
                 OutlinedTextField(
@@ -92,20 +110,22 @@ fun SearchScreen(
                     trailingIcon = {
                         if (searchQuery.isNotEmpty()) {
                             IconButton(onClick = { viewModel.onSearchQueryChange("") }) {
-                                Icon(Icons.Default.Close, contentDescription = "Clear search")
+                                Icon(Icons.Default.Clear, contentDescription = "Clear search")
                             }
                         }
                     },
                     colors = TextFieldDefaults.colors(
-                        focusedContainerColor = Color.White,
-                        unfocusedContainerColor = Color.White,
+                        focusedContainerColor = MaterialTheme.colorScheme.surface,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surface,
                         focusedIndicatorColor = TealPrimary,
-                        unfocusedIndicatorColor = Color.LightGray
+                        unfocusedIndicatorColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f),
+                        focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                        unfocusedTextColor = MaterialTheme.colorScheme.onSurface
                     )
                 )
             }
 
-            if (searchQuery.isNotEmpty()) {
+            if (searchQuery.isNotEmpty() && filteredResults.isNotEmpty()) {
                 Text(
                     text = "Results for \"$searchQuery\"",
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
@@ -137,24 +157,20 @@ fun SearchScreen(
                         )
                     }
                     items(matchingDrugs) { drug ->
-                        DrugStockCard(drug)
+                        SimpleDrugCard(drug.name) {
+                            viewModel.onSearchQueryChange(drug.name)
+                        }
                     }
                 }
 
-                if (searchQuery.isNotEmpty() && filteredResults.isNotEmpty()) {
+                if (filteredResults.isNotEmpty()) {
                     item {
                         Text(
-                            "Pharmacies Stocking This",
+                            "Nearby Pharmacies",
                             modifier = Modifier.padding(16.dp),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold
                         )
-                    }
-                } else if (searchQuery.isNotEmpty() && filteredResults.isEmpty()) {
-                    item {
-                        Box(modifier = Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
-                            Text("No pharmacies found for \"$searchQuery\"", color = Color.Gray)
-                        }
                     }
                 }
 
@@ -162,9 +178,32 @@ fun SearchScreen(
                     SearchResultCard(
                         result = result,
                         isSearching = searchQuery.isNotEmpty(),
-                    ) { onNavigateToPharmacy(result.id) }
+                        onClick = { onNavigateToPharmacy(result.name, null) }
+                    )
                 }
             }
+        }
+    }
+}
+
+@Composable
+fun SimpleDrugCard(name: String, onClick: () -> Unit) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 4.dp)
+            .clickable { onClick() },
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(Icons.Default.MedicalServices, contentDescription = null, tint = TealPrimary, modifier = Modifier.size(20.dp))
+            Spacer(modifier = Modifier.width(12.dp))
+            Text(name, fontWeight = FontWeight.Medium, fontSize = 16.sp)
         }
     }
 }
@@ -181,7 +220,7 @@ fun SearchResultCard(
             .padding(horizontal = 16.dp, vertical = 8.dp)
             .clickable { onClick() },
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -226,7 +265,7 @@ fun SearchResultCard(
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                            text = "${result.location} \u2022 ${result.distance}",
+                            text = "${result.location} • ${result.distance}",
                             color = TextSecondary,
                             fontSize = 13.sp
                         )
@@ -237,11 +276,6 @@ fun SearchResultCard(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        if (isSearching) {
-                            Text(result.price, color = TealPrimary, fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                        } else {
-                            Box(modifier = Modifier.width(1.dp))
-                        }
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Default.Star, contentDescription = null, tint = Color(0xFFFFB300), modifier = Modifier.size(16.dp))
                             Text(" ${result.rating}", fontWeight = FontWeight.Medium, fontSize = 14.sp)
