@@ -136,7 +136,7 @@ fun SearchScreen(
                     colors = TextFieldDefaults.colors(
                         focusedContainerColor = MaterialTheme.colorScheme.surface,
                         unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-                        focusedIndicatorColor = TealPrimary,
+                        focusedIndicatorColor = MaterialTheme.colorScheme.primary,
                         unfocusedIndicatorColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f),
                         focusedTextColor = MaterialTheme.colorScheme.onSurface,
                         unfocusedTextColor = MaterialTheme.colorScheme.onSurface
@@ -281,13 +281,13 @@ fun SearchResultCard(
                 Box(
                     modifier = Modifier
                         .size(56.dp)
-                        .background(if (result.inStock) TealPrimary else Color.LightGray.copy(alpha = 0.3f), RoundedCornerShape(12.dp)),
+                        .background(if (result.inStock) MaterialTheme.colorScheme.primary else Color.LightGray.copy(alpha = 0.3f), RoundedCornerShape(12.dp)),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         Icons.Default.AddCircle, 
                         contentDescription = null, 
-                        tint = if (result.inStock) Color.White else Color.Gray
+                        tint = if (result.inStock) MaterialTheme.colorScheme.onPrimary else Color.Gray
                     )
                 }
                 Spacer(modifier = Modifier.width(12.dp))
@@ -314,12 +314,12 @@ fun SearchResultCard(
                             Icons.Outlined.Place, 
                             contentDescription = null, 
                             modifier = Modifier.size(14.dp), 
-                            tint = TextSecondary
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
                             text = "${result.location} • ${result.distance}",
-                            color = TextSecondary,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             fontSize = 13.sp
                         )
                     }
@@ -333,8 +333,8 @@ fun SearchResultCard(
                             Icon(Icons.Default.Star, contentDescription = null, tint = Color(0xFFFFB300), modifier = Modifier.size(16.dp))
                             Text(" ${result.rating}", fontWeight = FontWeight.Medium, fontSize = 14.sp)
                             Spacer(modifier = Modifier.width(8.dp))
-                            Icon(Icons.Outlined.Info, contentDescription = null, tint = TextSecondary, modifier = Modifier.size(16.dp))
-                            Text(" ${result.closingTime}", color = TextSecondary, fontSize = 14.sp)
+                            Icon(Icons.Outlined.Info, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(16.dp))
+                            Text(" ${result.closingTime}", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp)
                         }
                     }
                 }
@@ -346,13 +346,13 @@ fun SearchResultCard(
 @Composable
 fun StockBadge(inStock: Boolean) {
     Surface(
-        color = if (inStock) InStock else OutOfStock,
+        color = if (inStock) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.errorContainer,
         shape = RoundedCornerShape(12.dp)
     ) {
         Text(
             text = if (inStock) "In Stock" else "Out of Stock",
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
-            color = if (inStock) TealPrimary else StatusClosed,
+            color = if (inStock) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onErrorContainer,
             fontSize = 12.sp,
             fontWeight = FontWeight.SemiBold
         )

@@ -89,7 +89,11 @@ fun MainApp() {
             when (currentScreen) {
                 Screen.Onboarding -> OnboardingScreen(
                     onGetStarted = { currentScreen = Screen.CreateAccount },
-                    onLogin = { currentScreen = Screen.Login }
+                    onLogin = { currentScreen = Screen.Login },
+                    isDarkMode = isDarkMode,
+                    onToggleDarkMode = {
+                        coroutineScope.launch { settingsManager.setDarkMode(!isDarkMode) }
+                    }
                 )
                 Screen.Login -> LoginScreen(
                     onBackToOnboarding = { currentScreen = Screen.Onboarding },

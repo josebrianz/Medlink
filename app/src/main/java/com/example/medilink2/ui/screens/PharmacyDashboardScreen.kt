@@ -19,8 +19,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.medilink2.data.UserManager
+import com.example.medilink2.data.NotificationLogicManager
 import com.example.medilink2.ui.theme.TealPrimary
 import com.google.firebase.database.FirebaseDatabase
+import androidx.compose.ui.platform.LocalContext
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -37,6 +40,9 @@ fun PharmacyDashboardScreen(
     var drugs by remember { mutableStateOf<List<Map<String, Any>>>(emptyList()) }
     var showAddDrugDialog by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(true) }
+
+    val scope = rememberCoroutineScope()
+    val context = LocalContext.current
 
     // Fetch Pharmacy Info and Drugs
     LaunchedEffect(userId) {
@@ -143,7 +149,8 @@ fun PharmacyDashboardScreen(
                         DrugInventoryCard(
                             drug = drug,
                             onUpdateStock = { drugId, newStock ->
-                                val inStock = (newStock.toIntOrNull() ?: 0) > 0
+                                val stockInt = newStock.toIntOrNull() ?: 0
+                                val inStock = stockInt > 0
                                 val updates = mapOf(
                                     "stockLevel" to newStock,
                                     "inStock" to inStock
@@ -156,6 +163,17 @@ fun PharmacyDashboardScreen(
                                     
                                 drugs = drugs.map { 
                                     if (it["id"] == drugId) it + updates else it
+                                }
+
+                                if (inStock) {
+                                    scope.launch {
+                                        NotificationLogicManager.checkStockAndNotify(
+                                            context,
+                                            userId,
+                                            drugId,
+                                            stockInt
+                                        )
+                                    }
                                 }
                             }
                         )

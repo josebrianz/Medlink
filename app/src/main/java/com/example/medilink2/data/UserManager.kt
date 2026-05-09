@@ -37,7 +37,8 @@ object UserManager {
                                 "email" to email,
                                 "role" to role.name
                             )
-                            database.child(userId).setValue(userMap)
+                            // Use updateChildren to avoid wiping out other fields like fcmToken
+                            database.child(userId).updateChildren(userMap)
                                 .addOnCompleteListener { dbTask ->
                                     if (dbTask.isSuccessful) {
                                         onResult(true, null)
@@ -47,7 +48,7 @@ object UserManager {
                                 }
                         }
                     } else {
-                        onResult(true, null)
+                        onResult(false, "Failed to retrieve User ID")
                     }
                 } else {
                     onResult(false, task.exception?.message)
@@ -63,7 +64,12 @@ object UserManager {
         }
         database.child(userId).child("role").get().addOnSuccessListener { snapshot ->
             val roleStr = snapshot.value as? String
-            val role = roleStr?.let { UserRole.valueOf(it) } ?: UserRole.PATIENT
+            // Safe enum parsing to prevent crashes on invalid data
+            val role = try {
+                roleStr?.let { UserRole.valueOf(it) } ?: UserRole.PATIENT
+            } catch (e: IllegalArgumentException) {
+                UserRole.PATIENT
+            }
             onResult(role)
         }.addOnFailureListener {
             onResult(null)

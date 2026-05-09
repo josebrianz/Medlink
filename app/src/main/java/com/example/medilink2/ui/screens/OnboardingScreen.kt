@@ -37,6 +37,7 @@ data class OnboardingPage(
     val backgroundColor: Color
 )
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun OnboardingScreen(
     onGetStarted: () -> Unit = {},
@@ -49,202 +50,201 @@ fun OnboardingScreen(
             title = "Find Your Medicine",
             highlightedTitle = "Instantly",
             description = "Search drug availability across pharmacies near you. Save time, save money, get treated faster.",
-            backgroundColor = Color(0xFFE0F2F1)
+            backgroundColor = if (isDarkMode) Color(0xFF003D33) else Color(0xFFE0F2F1)
         ),
         OnboardingPage(
             title = "Healthcare Needs",
             highlightedTitle = "At Your Fingertips",
             description = "Access a wide range of medical supplies and information from the comfort of your home.",
-            backgroundColor = Color(0xFFFFF8E1)
+            backgroundColor = if (isDarkMode) Color(0xFF3E2723) else Color(0xFFFFF8E1)
         ),
         OnboardingPage(
             title = "Locate Nearby",
             highlightedTitle = "Pharmacies",
             description = "Find the nearest open pharmacy and get directions in real-time.",
-            backgroundColor = Color(0xFFFFEBEE)
+            backgroundColor = if (isDarkMode) Color(0xFF311B92) else Color(0xFFFFEBEE)
         )
     )
 
     val pagerState = rememberPagerState(pageCount = { pages.size })
     val scope = rememberCoroutineScope()
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-            .padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.End
-        ) {
-            IconButton(onClick = onToggleDarkMode) {
-                Icon(
-                    imageVector = if (isDarkMode) Icons.Outlined.LightMode else Icons.Outlined.DarkMode,
-                    contentDescription = "Toggle Dark Mode",
-                    tint = MaterialTheme.colorScheme.onBackground
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {},
+                actions = {
+                    IconButton(onClick = onToggleDarkMode) {
+                        Icon(
+                            imageVector = if (isDarkMode) Icons.Outlined.LightMode else Icons.Outlined.DarkMode,
+                            contentDescription = "Toggle Theme",
+                            tint = MaterialTheme.colorScheme.onBackground
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.Transparent,
+                    actionIconContentColor = MaterialTheme.colorScheme.onBackground
                 )
-            }
-        }
-
-        HorizontalPager(
-            state = pagerState,
-            modifier = Modifier.weight(1f)
-        ) { pageIndex ->
-            val page = pages[pageIndex]
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center,
-                modifier = Modifier.fillMaxSize()
-            ) {
-                // Illustration Section
-                Box(
-                    modifier = Modifier
-                        .size(240.dp)
-                        .background(page.backgroundColor, CircleShape),
-                    contentAlignment = Alignment.Center
+            )
+        },
+        containerColor = MaterialTheme.colorScheme.background
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .padding(horizontal = 24.dp, vertical = 16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            HorizontalPager(
+                state = pagerState,
+                modifier = Modifier.weight(1f)
+            ) { pageIndex ->
+                val page = pages[pageIndex]
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center,
+                    modifier = Modifier.fillMaxSize()
                 ) {
-                    when (pageIndex) {
-                        0 -> {
-                            // Find Your Medicine Instantly - Medicine bottle icon
-                            Icon(
-                                imageVector = Icons.Default.Medication,
-                                contentDescription = null,
-                                modifier = Modifier.size(120.dp),
-                                tint = TealPrimary
-                            )
-                        }
-                        1 -> {
-                            // Healthcare Needs - Realistic Pills & Tablets
-                            Box(modifier = Modifier.size(160.dp)) {
-                                // Capsule 1 (Red/White)
-                                PillCapsule(
-                                    modifier = Modifier
-                                        .align(Alignment.TopStart)
-                                        .rotate(-45f),
-                                    topColor = Color(0xFFFF5252)
-                                )
-                                // Capsule 2 (Blue/White)
-                                PillCapsule(
-                                    modifier = Modifier
-                                        .align(Alignment.BottomEnd)
-                                        .rotate(30f),
-                                    topColor = Color(0xFF448AFF)
-                                )
-                                // Tablet 1 (Round white)
-                                PillTablet(
-                                    modifier = Modifier.align(Alignment.Center)
-                                )
-                                // Tablet 2 (Small round blue)
-                                PillTablet(
-                                    modifier = Modifier
-                                        .align(Alignment.TopEnd)
-                                        .size(40.dp),
-                                    color = Color(0xFFB3E5FC)
+                    // Illustration Section
+                    Box(
+                        modifier = Modifier
+                            .size(240.dp)
+                            .background(page.backgroundColor, CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        when (pageIndex) {
+                            0 -> {
+                                Icon(
+                                    imageVector = Icons.Default.Medication,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(120.dp),
+                                    tint = TealPrimary
                                 )
                             }
-                        }
-                        2 -> {
-                            // Locate Pharmacies - Professional Hospital/Pharmacy Icon
-                            Box(contentAlignment = Alignment.Center) {
+                            1 -> {
+                                Box(modifier = Modifier.size(160.dp)) {
+                                    PillCapsule(
+                                        modifier = Modifier
+                                            .align(Alignment.TopStart)
+                                            .rotate(-45f),
+                                        topColor = Color(0xFFFF5252)
+                                    )
+                                    PillCapsule(
+                                        modifier = Modifier
+                                            .align(Alignment.BottomEnd)
+                                            .rotate(30f),
+                                        topColor = Color(0xFF448AFF)
+                                    )
+                                    PillTablet(
+                                        modifier = Modifier.align(Alignment.Center)
+                                    )
+                                    PillTablet(
+                                        modifier = Modifier
+                                            .align(Alignment.TopEnd)
+                                            .size(40.dp),
+                                        color = Color(0xFFB3E5FC)
+                                    )
+                                }
+                            }
+                            2 -> {
                                 Icon(
                                     imageVector = Icons.Default.LocalHospital,
                                     contentDescription = null,
                                     modifier = Modifier.size(140.dp),
                                     tint = Color(0xFFE53935)
                                 )
-                                // Adding a small "pharmacy" cross overlay or just keep it clean
                             }
                         }
                     }
+
+                    Spacer(modifier = Modifier.height(48.dp))
+
+                    Text(
+                        text = page.title,
+                        style = MaterialTheme.typography.headlineLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onBackground,
+                        textAlign = TextAlign.Center
+                    )
+                    Text(
+                        text = page.highlightedTitle,
+                        style = MaterialTheme.typography.headlineLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = TealPrimary,
+                        textAlign = TextAlign.Center
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Text(
+                        text = page.description,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(horizontal = 12.dp)
+                    )
                 }
-
-                Spacer(modifier = Modifier.height(48.dp))
-
-                Text(
-                    text = page.title,
-                    style = MaterialTheme.typography.headlineLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onBackground,
-                    textAlign = TextAlign.Center
-                )
-                Text(
-                    text = page.highlightedTitle,
-                    style = MaterialTheme.typography.headlineLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = TealPrimary,
-                    textAlign = TextAlign.Center
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Text(
-                    text = page.description,
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = TextSecondary,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(horizontal = 12.dp)
-                )
             }
-        }
 
-        // Page Indicator
-        Row(
-            modifier = Modifier
-                .padding(vertical = 32.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            repeat(pages.size) { iteration ->
-                val color = if (pagerState.currentPage == iteration) TealPrimary else Color.LightGray
-                val width = if (pagerState.currentPage == iteration) 24.dp else 8.dp
-                Box(
-                    modifier = Modifier
-                        .height(8.dp)
-                        .width(width)
-                        .background(color, RoundedCornerShape(4.dp))
-                )
+            // Page Indicator
+            Row(
+                modifier = Modifier
+                    .padding(vertical = 32.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                repeat(pages.size) { iteration ->
+                    val color = if (pagerState.currentPage == iteration) TealPrimary else Color.LightGray
+                    val width = if (pagerState.currentPage == iteration) 24.dp else 8.dp
+                    Box(
+                        modifier = Modifier
+                            .height(8.dp)
+                            .width(width)
+                            .background(color, RoundedCornerShape(4.dp))
+                    )
+                }
             }
-        }
 
-        Button(
-            onClick = {
-                if (pagerState.currentPage < pages.size - 1) {
-                    scope.launch {
-                        pagerState.animateScrollToPage(pagerState.currentPage + 1)
+            Button(
+                onClick = {
+                    if (pagerState.currentPage < pages.size - 1) {
+                        scope.launch {
+                            pagerState.animateScrollToPage(pagerState.currentPage + 1)
+                        }
+                    } else {
+                        onGetStarted()
                     }
-                } else {
-                    onGetStarted()
-                }
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(56.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = TealPrimary),
-            shape = RoundedCornerShape(28.dp)
-        ) {
-            Text(
-                if (pagerState.currentPage == pages.size - 1) "Get Started" else "Next",
-                fontSize = 18.sp,
-                fontWeight = FontWeight.SemiBold
-            )
-        }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = TealPrimary),
+                shape = RoundedCornerShape(28.dp)
+            ) {
+                Text(
+                    if (pagerState.currentPage == pages.size - 1) "Get Started" else "Next",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
 
-        Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-        OutlinedButton(
-            onClick = onLogin,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(56.dp),
-            colors = ButtonDefaults.outlinedButtonColors(contentColor = TealPrimary),
-            border = androidx.compose.foundation.BorderStroke(1.dp, TealPrimary),
-            shape = RoundedCornerShape(28.dp)
-        ) {
-            Text("I already have an account", fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
+            OutlinedButton(
+                onClick = onLogin,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = TealPrimary),
+                border = androidx.compose.foundation.BorderStroke(1.dp, TealPrimary),
+                shape = RoundedCornerShape(28.dp)
+            ) {
+                Text("I already have an account", fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
+            }
+            
+            Spacer(modifier = Modifier.height(16.dp))
         }
-        
-        Spacer(modifier = Modifier.height(16.dp))
     }
 }
 

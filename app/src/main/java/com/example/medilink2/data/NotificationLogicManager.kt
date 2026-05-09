@@ -6,6 +6,7 @@ import com.example.medilink2.ui.components.DrugItem
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.Query
+import com.google.firebase.database.FirebaseDatabase
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.channels.awaitClose
@@ -18,7 +19,7 @@ data class NotificationRequest(
     val pharmacyId: String = "",
     val pharmacyName: String = "",
     val status: String = "waiting", // "waiting" | "notified" | "read"
-    val timestamp: Any = FieldValue.serverTimestamp(),
+    val timestamp: Any? = null,
 )
 
 object NotificationLogicManager {
@@ -35,11 +36,21 @@ object NotificationLogicManager {
             status = "waiting",
         )
 
+        // Save to Firestore for patient's notification history
         db.collection("notifications")
             .document(userId)
             .collection("my_requests")
             .document(requestId)
             .set(request).await()
+
+        // Track subscriber in RTDB for instant owner-triggered notifications
+        FirebaseDatabase.getInstance().getReference("pharmacies")
+            .child(pharmacyId)
+            .child("drugs")
+            .child(drug.id)
+            .child("subscribers")
+            .child(userId)
+            .setValue(true)
     }
 
     suspend fun removeNotificationRequest(userId: String, drugId: String, pharmacyId: String) {
@@ -49,6 +60,15 @@ object NotificationLogicManager {
             .collection("my_requests")
             .document(requestId)
             .delete().await()
+
+        // Remove from RTDB subscribers list
+        FirebaseDatabase.getInstance().getReference("pharmacies")
+            .child(pharmacyId)
+            .child("drugs")
+            .child(drugId)
+            .child("subscribers")
+            .child(userId)
+            .removeValue()
     }
 
     fun isSubscribed(userId: String, drugId: String, pharmacyId: String): Flow<Boolean> = callbackFlow {
@@ -64,36 +84,41 @@ object NotificationLogicManager {
         awaitClose { listener.remove() }
     }
 
-    suspend fun checkStockAndNotify(context: Context, userId: String) {
+    suspend fun checkStockAndNotify(context: Context, pharmacyId: String, drugId: String, newStock: Int) {
+        if (newStock <= 0) return
+
         try {
-            val waitingRequests = db.collection("notifications")
-                .document(userId)
-                .collection("my_requests")
-                .whereEqualTo("status", "waiting")
-                .get().await()
+            val pharmacyRef = FirebaseDatabase.getInstance().getReference("pharmacies").child(pharmacyId)
+            val drugRef = pharmacyRef.child("drugs").child(drugId)
 
-            for (doc in waitingRequests.documents) {
-                val drugId = doc.getString("drugId") ?: continue
-                val drugName = doc.getString("drugName") ?: "A medicine"
-                val pharmacyId = doc.getString("pharmacyId") ?: continue
-                val pharmacyName = doc.getString("pharmacyName") ?: "a pharmacy"
+            val snapshot = drugRef.child("subscribers").get().await()
+            
+            if (snapshot.exists()) {
+                val drugName = drugRef.child("name").get().await().value as? String ?: "A medicine"
+                val pharmacyName = pharmacyRef.child("name").get().await().value as? String ?: "a pharmacy"
 
-                val stockDoc = db.collection("pharmacy_stock")
-                    .document(pharmacyId)
-                    .collection("drugs")
-                    .document(drugId)
-                    .get().await()
-
-                val currentStatus = stockDoc.getString("status")
-
-                if (currentStatus == "IN_STOCK") {
+                for (userChild in snapshot.children) {
+                    val patientId = userChild.key ?: continue
+                    val requestId = "${pharmacyId}_$drugId"
+                    
+                    // Update Firestore status. Awaiting this ensures the write completes.
+                    db.collection("notifications")
+                        .document(patientId)
+                        .collection("my_requests")
+                        .document(requestId)
+                        .update("status", "notified")
+                        .await()
+                    
+                    // Also fire a local notification for the device performing the update (for testing/feedback)
                     NotificationHelper.showNotification(
                         context,
-                        "Drug Available! 🏥",
-                        "$drugName is now available at $pharmacyName",
+                        "Stock Updated: $drugName",
+                        "Subscribers have been notified that it's now available.",
                     )
-                    doc.reference.update("status", "notified").await()
                 }
+                
+                // Clear subscribers once they've been notified to avoid duplicate alerts
+                drugRef.child("subscribers").removeValue().await()
             }
         } catch (e: Exception) {
             e.printStackTrace()

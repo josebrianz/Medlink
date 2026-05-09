@@ -83,7 +83,10 @@ class SearchViewModel : ViewModel() {
         
         // Also include pharmacies that stock the searched drug
         val pharmaciesByDrug = repository.getPharmaciesStocking(query).map { details ->
-            val drug = details.inventory.find { it.name.contains(query, ignoreCase = true) }
+            val drug = details.inventory.find { 
+                it.name.contains(query, ignoreCase = true) || 
+                it.category.contains(query, ignoreCase = true) 
+            }
             SearchResult(
                 id = details.id,
                 name = details.name,

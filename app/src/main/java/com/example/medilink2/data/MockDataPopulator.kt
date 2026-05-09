@@ -29,13 +29,13 @@ object MockDataPopulator {
 
     private val mockData = listOf(
         MockPharmacy("1", "MedPlus Pharmacy", "Kampala Road, Plot 23", "0.8 km", "UGX 3,000", "4.8", "9:00 PM", true, listOf(
-            MockDrug("Paracetamol", "Pain Relief", "UGX 3,000", "50", true),
-            MockDrug("Panadol Extra", "Pain Relief", "UGX 5,000", "30", true),
+            MockDrug("Paracetamol", "Pain & Fever", "UGX 3,000", "50", true),
+            MockDrug("Panadol Extra", "Pain & Fever", "UGX 5,000", "30", true),
             MockDrug("Diclofenac Gel", "Topical", "UGX 12,000", "15", true),
             MockDrug("Gaviscon", "Antacid", "UGX 15,000", "20", true)
         )),
         MockPharmacy("2", "City Chemist", "Jinja Road, Near Total", "1.2 km", "UGX 2,500", "4.5", "8:00 PM", true, listOf(
-            MockDrug("Paracetamol", "Pain Relief", "UGX 2,500", "100", true),
+            MockDrug("Paracetamol", "Pain & Fever", "UGX 2,500", "100", true),
             MockDrug("Amoxicillin", "Antibiotic", "UGX 8,000", "40", true),
             MockDrug("Vitamin C", "Supplements", "UGX 1,500", "200", true),
             MockDrug("Augustin", "Antibiotic", "UGX 25,000", "10", true)
@@ -62,7 +62,7 @@ object MockDataPopulator {
             MockDrug("Folic Acid", "Supplements", "UGX 1,000", "300", true)
         )),
         MockPharmacy("7", "First Care Pharmacy", "Kikuubo Lane", "0.5 km", "UGX 2,200", "4.7", "11:00 PM", true, listOf(
-            MockDrug("Paracetamol", "Pain Relief", "UGX 2,200", "120", true),
+            MockDrug("Paracetamol", "Pain & Fever", "UGX 2,200", "120", true),
             MockDrug("Amoxicillin", "Antibiotic", "UGX 7,500", "50", true),
             MockDrug("Metronidazole", "Antibiotic", "UGX 4,000", "60", true)
         )),

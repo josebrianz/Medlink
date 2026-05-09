@@ -54,8 +54,10 @@ fun PharmacyDetailScreen(
     var isLoading by remember { mutableStateOf(true) }
 
     LaunchedEffect(pharmacyId) {
-        pharmacy = repository.getPharmacyDetails(pharmacyId)
-        isLoading = false
+        repository.getPharmacyDetailsFlow(pharmacyId).collect {
+            pharmacy = it
+            isLoading = false
+        }
     }
 
     Scaffold(

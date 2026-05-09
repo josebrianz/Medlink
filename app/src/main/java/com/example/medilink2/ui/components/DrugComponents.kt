@@ -50,7 +50,7 @@ fun DrugStockCard(
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 6.dp),
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -61,12 +61,12 @@ fun DrugStockCard(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(drug.name, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = TextPrimary)
-                    Text(drug.category, color = TextSecondary, fontSize = 13.sp)
+                    Text(drug.name, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = MaterialTheme.colorScheme.onSurface)
+                    Text(drug.category, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
                     Spacer(modifier = Modifier.height(4.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         val stockColor = when (drug.stockLevel) {
-                            "High" -> TealPrimary
+                            "High" -> MaterialTheme.colorScheme.primary
                             "Medium" -> Color(0xFFFFA000)
                             "Low" -> Color(0xFFD32F2F)
                             else -> Color.Gray
@@ -77,21 +77,21 @@ fun DrugStockCard(
                                 .background(stockColor, RoundedCornerShape(4.dp)),
                         )
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("Stock: ${drug.stockLevel}", color = TextSecondary, fontSize = 12.sp)
+                        Text("Stock: ${drug.stockLevel}", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
                     }
                 }
 
                 Column(horizontalAlignment = Alignment.End) {
-                    Text(drug.price, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp, color = TealPrimary)
+                    Text(drug.price, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp, color = MaterialTheme.colorScheme.primary)
                     Spacer(modifier = Modifier.height(4.dp))
                     Surface(
-                        color = if (drug.inStock) InStock else OutOfStock,
+                        color = if (drug.inStock) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.errorContainer,
                         shape = RoundedCornerShape(8.dp)
                     ) {
                         Text(
                             text = if (drug.inStock) "In Stock" else "Out of Stock",
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
-                            color = if (drug.inStock) TealDark else StatusClosed,
+                            color = if (drug.inStock) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onErrorContainer,
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold
                         )
@@ -120,8 +120,8 @@ fun DrugStockCard(
                     },
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = if (isSubscribed) Color.LightGray else TealPrimary,
-                        contentColor = if (isSubscribed) Color.DarkGray else Color.White
+                        containerColor = if (isSubscribed) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.primary,
+                        contentColor = if (isSubscribed) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onPrimary
                     ),
                     shape = RoundedCornerShape(8.dp)
                 ) {

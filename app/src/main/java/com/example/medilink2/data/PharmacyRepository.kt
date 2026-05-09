@@ -34,11 +34,11 @@ class PharmacyRepository(private val pharmacyDao: PharmacyDao? = null) {
     )
 
     private val fullInventory = listOf(
-        DrugItem(id = "1", name = "Paracetamol", category = "Pain Relief", price = "UGX 3,000", inStock = true, stockLevel = "High"),
+        DrugItem(id = "1", name = "Paracetamol", category = "Pain & Fever", price = "UGX 3,000", inStock = true, stockLevel = "High"),
         DrugItem(id = "2", name = "Amoxicillin", category = "Antibiotic", price = "UGX 12,000", inStock = true, stockLevel = "Medium"),
-        DrugItem(id = "3", name = "Ibuprofen", category = "Pain Relief", price = "UGX 5,500", inStock = false, stockLevel = "Out of Stock"),
+        DrugItem(id = "3", name = "Ibuprofen", category = "Pain & Fever", price = "UGX 5,500", inStock = false, stockLevel = "Out of Stock"),
         DrugItem(id = "4", name = "Cetirizine", category = "Allergy", price = "UGX 4,000", inStock = true, stockLevel = "High"),
-        DrugItem(id = "5", name = "Panadol Extra", category = "Pain Relief", price = "UGX 4,500", inStock = true, stockLevel = "Low"),
+        DrugItem(id = "5", name = "Panadol Extra", category = "Pain & Fever", price = "UGX 4,500", inStock = true, stockLevel = "Low"),
         DrugItem(id = "6", name = "Vitamin C", category = "Supplements", price = "UGX 15,000", inStock = true, stockLevel = "Medium"),
         DrugItem(id = "7", name = "Metformin", category = "Diabetes", price = "UGX 8,000", inStock = true, stockLevel = "Low"),
         DrugItem(id = "8", name = "Insulin Glargine", category = "Diabetes", price = "UGX 45,000", inStock = true, stockLevel = "Medium"),
@@ -115,7 +115,7 @@ class PharmacyRepository(private val pharmacyDao: PharmacyDao? = null) {
                     val category = child.child("category").value as? String ?: ""
                     val price = child.child("price").value as? String ?: ""
                     val stockLevel = child.child("stockLevel").value?.toString() ?: "0"
-                    val inStock = child.child("inStock").value as? Boolean ?: (stockLevel.toIntOrNull() ?: 0 > 0)
+                    val inStock = (child.child("inStock").value as? Boolean == true) || ((stockLevel.toIntOrNull() ?: 0) > 0)
                     
                     DrugItem(
                         id = id,
@@ -145,6 +145,60 @@ class PharmacyRepository(private val pharmacyDao: PharmacyDao? = null) {
         stockLevel = stockLevel
     )
 
+    fun getPharmacyDetailsFlow(pharmacyId: String): Flow<PharmacyDetails?> = callbackFlow {
+        val pharmacyRef = pharmaciesRef.child(pharmacyId)
+        val listener = pharmacyRef.addValueEventListener(object : com.google.firebase.database.ValueEventListener {
+            override fun onDataChange(snapshot: com.google.firebase.database.DataSnapshot) {
+                if (!snapshot.exists()) {
+                    // Try to find in mock data
+                    val base = pharmacyData.find { it.id == pharmacyId }
+                    if (base != null) {
+                        trySend(base.copy(inventory = getInventoryForPharmacy(pharmacyId)))
+                    } else {
+                        trySend(null)
+                    }
+                    return
+                }
+
+                val name = snapshot.child("name").value as? String ?: ""
+                val location = snapshot.child("location").value as? String ?: ""
+                val rating = snapshot.child("rating").value as? String ?: "0.0"
+                val closingTime = snapshot.child("closingTime").value as? String ?: "9:00 PM"
+                val lat = (snapshot.child("latitude").value as? Number)?.toDouble() ?: 0.3136
+                val lon = (snapshot.child("longitude").value as? Number)?.toDouble() ?: 32.5811
+                
+                val drugsSnapshot = snapshot.child("drugs")
+                val drugsList = drugsSnapshot.children.mapNotNull { child ->
+                    val id = child.key ?: return@mapNotNull null
+                    val drugName = child.child("name").value as? String ?: ""
+                    val category = child.child("category").value as? String ?: ""
+                    val price = child.child("price").value as? String ?: ""
+                    val stockLevel = child.child("stockLevel").value?.toString() ?: "0"
+                    val inStock = (child.child("inStock").value as? Boolean == true) || ((stockLevel.toIntOrNull() ?: 0) > 0)
+                    
+                    DrugItem(id, drugName, category, price, inStock, stockLevel)
+                }
+
+                trySend(PharmacyDetails(
+                    id = pharmacyId,
+                    name = name,
+                    location = location,
+                    distance = "1.2 km",
+                    rating = rating,
+                    closingTime = closingTime,
+                    inventory = drugsList,
+                    latitude = lat,
+                    longitude = lon
+                ))
+            }
+
+            override fun onCancelled(error: com.google.firebase.database.DatabaseError) {
+                close(error.toException())
+            }
+        })
+        awaitClose { pharmacyRef.removeEventListener(listener) }
+    }
+
     suspend fun getPharmacyDetails(pharmacyId: String): PharmacyDetails? {
         val snapshot = pharmaciesRef.child(pharmacyId).get().await()
         if (!snapshot.exists()) {
@@ -167,7 +221,7 @@ class PharmacyRepository(private val pharmacyDao: PharmacyDao? = null) {
             val category = child.child("category").value as? String ?: ""
             val price = child.child("price").value as? String ?: ""
             val stockLevel = child.child("stockLevel").value?.toString() ?: "0"
-            val inStock = child.child("inStock").value as? Boolean ?: (stockLevel.toIntOrNull() ?: 0 > 0)
+            val inStock = (child.child("inStock").value as? Boolean == true) || ((stockLevel.toIntOrNull() ?: 0) > 0)
             
             DrugItem(id, drugName, category, price, inStock, stockLevel)
         }
@@ -193,9 +247,64 @@ class PharmacyRepository(private val pharmacyDao: PharmacyDao? = null) {
     }
 
     fun getPharmaciesStocking(drugName: String): List<PharmacyDetails> {
+        // This is still using mock data, let's fix SearchViewModel instead to use live data
         return pharmacyData.filter { pharmacy ->
-            getInventoryForPharmacy(pharmacy.id).any { it.name.contains(drugName, ignoreCase = true) }
+            getInventoryForPharmacy(pharmacy.id).any { 
+                it.name.contains(drugName, ignoreCase = true) || 
+                it.category.contains(drugName, ignoreCase = true) 
+            }
         }
+    }
+
+    /**
+     * Searches for drugs across all pharmacies in the Realtime Database.
+     */
+    fun searchDrugsLive(query: String): Flow<List<Pair<PharmacyEntity, DrugItem>>> = callbackFlow {
+        val listener = pharmaciesRef.addValueEventListener(object : com.google.firebase.database.ValueEventListener {
+            override fun onDataChange(snapshot: com.google.firebase.database.DataSnapshot) {
+                val results = mutableListOf<Pair<PharmacyEntity, DrugItem>>()
+                snapshot.children.forEach { pharmacySnapshot ->
+                    val pharmacyId = pharmacySnapshot.key ?: return@forEach
+                    val pharmacyName = pharmacySnapshot.child("name").value as? String ?: ""
+                    val location = pharmacySnapshot.child("location").value as? String ?: ""
+                    val rating = pharmacySnapshot.child("rating").value as? String ?: "0.0"
+                    val closingTime = pharmacySnapshot.child("closingTime").value as? String ?: "9:00 PM"
+                    val lat = (pharmacySnapshot.child("latitude").value as? Number)?.toDouble() ?: 0.3136
+                    val lon = (pharmacySnapshot.child("longitude").value as? Number)?.toDouble() ?: 32.5811
+                    
+                    val pharmacy = PharmacyEntity(
+                        id = pharmacyId,
+                        name = pharmacyName,
+                        location = location,
+                        distance = "1.2 km",
+                        rating = rating,
+                        closingTime = closingTime,
+                        isOpen = true,
+                        latitude = lat,
+                        longitude = lon
+                    )
+
+                    pharmacySnapshot.child("drugs").children.forEach { drugSnapshot ->
+                        val name = drugSnapshot.child("name").value as? String ?: ""
+                        val category = drugSnapshot.child("category").value as? String ?: ""
+                        if (name.contains(query, ignoreCase = true) || category.contains(query, ignoreCase = true)) {
+                            val id = drugSnapshot.key ?: ""
+                            val price = drugSnapshot.child("price").value as? String ?: ""
+                            val stockLevel = drugSnapshot.child("stockLevel").value?.toString() ?: "0"
+                            val inStock = (drugSnapshot.child("inStock").value as? Boolean == true) || ((stockLevel.toIntOrNull() ?: 0) > 0)
+                            
+                            results.add(pharmacy to DrugItem(id, name, category, price, inStock, stockLevel))
+                        }
+                    }
+                }
+                trySend(results)
+            }
+
+            override fun onCancelled(error: com.google.firebase.database.DatabaseError) {
+                close(error.toException())
+            }
+        })
+        awaitClose { pharmaciesRef.removeEventListener(listener) }
     }
 
     private fun getInventoryForPharmacy(pharmacyId: String): List<DrugItem> {
