@@ -21,10 +21,11 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.example.medilink2.data.UserManager
 import com.example.medilink2.data.NotificationLogicManager
-import com.example.medilink2.ui.theme.TealPrimary
 import com.google.firebase.database.FirebaseDatabase
 
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
 import kotlinx.coroutines.launch
 
 import org.osmdroid.events.MapEventsReceiver
@@ -97,8 +98,8 @@ fun PharmacyDashboardScreen(
             if (isPharmacyRegistered) {
                 FloatingActionButton(
                     onClick = { showAddDrugDialog = true },
-                    containerColor = TealPrimary,
-                    contentColor = Color.White
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
                 ) {
                     Icon(Icons.Outlined.Add, contentDescription = "Add Drug")
                 }
@@ -306,7 +307,7 @@ fun RegisterPharmacyView(
             },
             modifier = Modifier.fillMaxWidth().height(56.dp),
             shape = RoundedCornerShape(28.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = TealPrimary),
+            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
             enabled = !isRegistering && name.isNotBlank() && locationName.isNotBlank() && selectedLocation != null
         ) {
             if (isRegistering) {
@@ -395,7 +396,7 @@ fun DrugInventoryCard(
             Column(modifier = Modifier.weight(1f)) {
                 Text(name, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                 Text(category, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text(price, fontWeight = FontWeight.Bold, color = TealPrimary)
+                Text(price, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
             }
             
             Column(horizontalAlignment = Alignment.End) {
@@ -429,20 +430,51 @@ fun AddDrugDialog(
     var price by remember { mutableStateOf("") }
     var stock by remember { mutableStateOf("") }
 
+    val isFormValid = name.isNotBlank() && category.isNotBlank() && price.isNotBlank() && stock.isNotBlank()
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Add New Drug") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Drug Name") })
-                OutlinedTextField(value = category, onValueChange = { category = it }, label = { Text("Category") })
-                OutlinedTextField(value = price, onValueChange = { price = it }, label = { Text("Price (e.g. UGX 5,000)") })
-                OutlinedTextField(value = stock, onValueChange = { stock = it }, label = { Text("Initial Stock") })
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("Drug Name") },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp)
+                )
+                OutlinedTextField(
+                    value = category,
+                    onValueChange = { category = it },
+                    label = { Text("Category (e.g. Pain & Fever)") },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp)
+                )
+                OutlinedTextField(
+                    value = price,
+                    onValueChange = { price = it },
+                    label = { Text("Price (e.g. UGX 5,000)") },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp)
+                )
+                OutlinedTextField(
+                    value = stock,
+                    onValueChange = { stock = it },
+                    label = { Text("Initial Stock") },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                )
             }
         },
         confirmButton = {
-            Button(onClick = { onConfirm(name, category, price, stock) }) {
-                Text("Add")
+            Button(
+                onClick = { onConfirm(name, category, price, stock) },
+                enabled = isFormValid,
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Text("Add Drug")
             }
         },
         dismissButton = {

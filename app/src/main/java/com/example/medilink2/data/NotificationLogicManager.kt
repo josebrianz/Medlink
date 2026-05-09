@@ -34,6 +34,7 @@ object NotificationLogicManager {
             pharmacyId = pharmacyId,
             pharmacyName = pharmacyName,
             status = "waiting",
+            timestamp = FieldValue.serverTimestamp()
         )
 
         // Save to Firestore for patient's notification history
@@ -95,33 +96,43 @@ object NotificationLogicManager {
             
             if (snapshot.exists()) {
                 val drugName = drugRef.child("name").get().await().value as? String ?: "A medicine"
-                val pharmacyName = pharmacyRef.child("name").get().await().value as? String ?: "a pharmacy"
-
+                
                 for (userChild in snapshot.children) {
                     val patientId = userChild.key ?: continue
                     val requestId = "${pharmacyId}_$drugId"
                     
-                    // Update Firestore status. Awaiting this ensures the write completes.
-                    db.collection("notifications")
-                        .document(patientId)
-                        .collection("my_requests")
-                        .document(requestId)
-                        .update("status", "notified")
-                        .await()
-                    
-                    // Also fire a local notification for the device performing the update (for testing/feedback)
-                    NotificationHelper.showNotification(
-                        context,
-                        "Stock Updated: $drugName",
-                        "Subscribers have been notified that it's now available.",
-                    )
+                    try {
+                        db.collection("notifications")
+                            .document(patientId)
+                            .collection("my_requests")
+                            .document(requestId)
+                            .update(mapOf(
+                                "status" to "notified",
+                                "timestamp" to FieldValue.serverTimestamp()
+                            ))
+                            .await()
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
                 }
                 
-                // Clear subscribers once they've been notified to avoid duplicate alerts
+                NotificationHelper.showNotification(
+                    context,
+                    "Subscribers Notified",
+                    "Stock updated for $drugName and alerts sent."
+                )
+                
                 drugRef.child("subscribers").removeValue().await()
+            } else {
+                NotificationHelper.showNotification(
+                    context,
+                    "Stock Updated",
+                    "Inventory updated successfully (no subscribers to notify)."
+                )
             }
         } catch (e: Exception) {
             e.printStackTrace()
+            // Optional: notify the UI about the failure
         }
     }
 
