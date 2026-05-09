@@ -143,15 +143,19 @@ fun PharmacyDashboardScreen(
                         DrugInventoryCard(
                             drug = drug,
                             onUpdateStock = { drugId, newStock ->
+                                val inStock = (newStock.toIntOrNull() ?: 0) > 0
+                                val updates = mapOf(
+                                    "stockLevel" to newStock,
+                                    "inStock" to inStock
+                                )
                                 database.getReference("pharmacies")
                                     .child(userId)
                                     .child("drugs")
                                     .child(drugId)
-                                    .child("stockLevel")
-                                    .setValue(newStock)
+                                    .updateChildren(updates)
                                     
                                 drugs = drugs.map { 
-                                    if (it["id"] == drugId) it + ("stockLevel" to newStock) else it 
+                                    if (it["id"] == drugId) it + updates else it
                                 }
                             }
                         )
