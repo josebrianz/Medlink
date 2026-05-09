@@ -217,6 +217,38 @@ fun MapScreen(
         }
     }
 
+    val pharmacyMarkers = remember { mutableMapOf<String, Marker>() }
+
+    // Update markers when pharmacies list changes
+    LaunchedEffect(pharmacies) {
+        // Remove markers for pharmacies no longer in the list
+        val currentIds = pharmacies.map { it.id }.toSet()
+        pharmacyMarkers.keys.retainAll { id ->
+            if (!currentIds.contains(id)) {
+                mapView.overlays.remove(pharmacyMarkers[id])
+                true
+            } else false
+        }
+
+        // Add or update markers for pharmacies in the list
+        pharmacies.forEach { pharmacy ->
+            val marker = pharmacyMarkers.getOrPut(pharmacy.id) {
+                Marker(mapView).apply {
+                    setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+                    setOnMarkerClickListener { m, _ ->
+                        m.showInfoWindow()
+                        onNavigateToPharmacy(pharmacy.id)
+                        true
+                    }
+                    mapView.overlays.add(this)
+                }
+            }
+            marker.position = GeoPoint(pharmacy.latitude, pharmacy.longitude)
+            marker.title = "${pharmacy.name} (${pharmacy.location})"
+        }
+        mapView.invalidate()
+    }
+
     DisposableEffect(mapView) {
         onDispose {
             locationOverlay.disableMyLocation()
@@ -277,11 +309,8 @@ fun MapScreen(
                         }
                     }
                 },
-                update = { view ->
-                    // Markers and polylines are managed in LaunchedEffect
-                    pharmacies.forEach { pharmacy ->
-                        addPharmacyMarker(view, "${pharmacy.name} (${pharmacy.location})", GeoPoint(pharmacy.latitude, pharmacy.longitude)) { onNavigateToPharmacy(pharmacy.id) }
-                    }
+                update = { _ ->
+                    // Markers and polylines are managed in LaunchedEffects
                 },
                 modifier = Modifier.fillMaxSize()
             )

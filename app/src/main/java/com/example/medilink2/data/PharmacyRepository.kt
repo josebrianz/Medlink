@@ -72,8 +72,11 @@ class PharmacyRepository(private val pharmacyDao: PharmacyDao? = null) {
                     val location = child.child("location").value as? String ?: ""
                     val rating = child.child("rating").value as? String ?: "0.0"
                     val closingTime = child.child("closingTime").value as? String ?: "9:00 PM"
-                    val lat = (child.child("latitude").value as? Number)?.toDouble() ?: 0.3136
-                    val lon = (child.child("longitude").value as? Number)?.toDouble() ?: 32.5811
+                    
+                    // Use list-based fallback for coordinates if missing in Firebase
+                    val fallback = pharmacyData.find { it.id == id }
+                    val lat = (child.child("latitude").value as? Number)?.toDouble() ?: fallback?.latitude ?: 0.3136
+                    val lon = (child.child("longitude").value as? Number)?.toDouble() ?: fallback?.longitude ?: 32.5811
                     
                     PharmacyEntity(
                         id = id,
@@ -211,8 +214,10 @@ class PharmacyRepository(private val pharmacyDao: PharmacyDao? = null) {
         val location = snapshot.child("location").value as? String ?: ""
         val rating = snapshot.child("rating").value as? String ?: "0.0"
         val closingTime = snapshot.child("closingTime").value as? String ?: "9:00 PM"
-        val lat = (snapshot.child("latitude").value as? Number)?.toDouble() ?: 0.3136
-        val lon = (snapshot.child("longitude").value as? Number)?.toDouble() ?: 32.5811
+        
+        val fallback = pharmacyData.find { it.id == pharmacyId }
+        val lat = (snapshot.child("latitude").value as? Number)?.toDouble() ?: fallback?.latitude ?: 0.3136
+        val lon = (snapshot.child("longitude").value as? Number)?.toDouble() ?: fallback?.longitude ?: 32.5811
         
         val drugsSnapshot = snapshot.child("drugs")
         val drugsList = drugsSnapshot.children.mapNotNull { child ->

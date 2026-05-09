@@ -18,12 +18,21 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
 import com.example.medilink2.data.UserManager
 import com.example.medilink2.data.NotificationLogicManager
 import com.example.medilink2.ui.theme.TealPrimary
 import com.google.firebase.database.FirebaseDatabase
+
 import androidx.compose.ui.platform.LocalContext
 import kotlinx.coroutines.launch
+
+import org.osmdroid.events.MapEventsReceiver
+import org.osmdroid.tileprovider.tilesource.TileSourceFactory
+import org.osmdroid.util.GeoPoint
+import org.osmdroid.views.MapView
+import org.osmdroid.views.overlay.MapEventsOverlay
+import org.osmdroid.views.overlay.Marker
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -215,8 +224,20 @@ fun RegisterPharmacyView(
     modifier: Modifier = Modifier
 ) {
     var name by remember { mutableStateOf("") }
-    var location by remember { mutableStateOf("") }
+    var locationName by remember { mutableStateOf("") }
+    var selectedLocation by remember { mutableStateOf<GeoPoint?>(null) }
+    var showMapPicker by remember { mutableStateOf(false) }
     var isRegistering by remember { mutableStateOf(false) }
+
+    if (showMapPicker) {
+        LocationPickerModal(
+            onLocationSelected = { geoPoint ->
+                selectedLocation = geoPoint
+                showMapPicker = false
+            },
+            onDismiss = { showMapPicker = false }
+        )
+    }
 
     Column(
         modifier = modifier
@@ -242,37 +263,51 @@ fun RegisterPharmacyView(
         Spacer(modifier = Modifier.height(16.dp))
         
         OutlinedTextField(
-            value = location,
-            onValueChange = { location = it },
-            label = { Text("Pharmacy Location") },
+            value = locationName,
+            onValueChange = { locationName = it },
+            label = { Text("Area/Street Name") },
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(12.dp)
         )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        OutlinedButton(
+            onClick = { showMapPicker = true },
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Icon(Icons.Default.Place, contentDescription = null)
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(if (selectedLocation != null) "Location Picked: ${"%.4f".format(selectedLocation!!.latitude)}, ${"%.4f".format(selectedLocation!!.longitude)}" else "Select Location on Map")
+        }
         
         Spacer(modifier = Modifier.height(32.dp))
         
         Button(
             onClick = {
-                if (name.isNotBlank() && location.isNotBlank()) {
+                if (name.isNotBlank() && locationName.isNotBlank() && selectedLocation != null) {
                     isRegistering = true
                     val pharmacyMap = mapOf(
                         "name" to name,
-                        "location" to location,
+                        "location" to locationName,
                         "rating" to "0.0",
-                        "closingTime" to "9:00 PM"
+                        "closingTime" to "9:00 PM",
+                        "latitude" to selectedLocation!!.latitude,
+                        "longitude" to selectedLocation!!.longitude
                     )
                     FirebaseDatabase.getInstance().getReference("pharmacies")
                         .child(userId)
                         .setValue(pharmacyMap)
                         .addOnSuccessListener {
-                            onRegistered(name, location)
+                            onRegistered(name, locationName)
                         }
                 }
             },
             modifier = Modifier.fillMaxWidth().height(56.dp),
             shape = RoundedCornerShape(28.dp),
             colors = ButtonDefaults.buttonColors(containerColor = TealPrimary),
-            enabled = !isRegistering
+            enabled = !isRegistering && name.isNotBlank() && locationName.isNotBlank() && selectedLocation != null
         ) {
             if (isRegistering) {
                 CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
@@ -281,6 +316,60 @@ fun RegisterPharmacyView(
             }
         }
     }
+}
+
+@Composable
+fun LocationPickerModal(
+    onLocationSelected: (GeoPoint) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var currentPoint by remember { mutableStateOf(GeoPoint(0.3476, 32.5825)) } // Default Kampala
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Tap to Pick Location") },
+        text = {
+            Box(modifier = Modifier.height(400.dp).fillMaxWidth()) {
+                AndroidView(
+                    factory = { ctx ->
+                        MapView(ctx).apply {
+                            setTileSource(TileSourceFactory.MAPNIK)
+                            setMultiTouchControls(true)
+                            controller.setZoom(14.0)
+                            controller.setCenter(currentPoint)
+
+                            val marker = Marker(this)
+                            marker.position = currentPoint
+                            marker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+                            overlays.add(marker)
+
+                            val eventsReceiver = object : MapEventsReceiver {
+                                override fun singleTapConfirmedHelper(p: GeoPoint): Boolean {
+                                    currentPoint = p
+                                    marker.position = p
+                                    invalidate()
+                                    return true
+                                }
+                                override fun longPressHelper(p: GeoPoint): Boolean = false
+                            }
+                            overlays.add(MapEventsOverlay(eventsReceiver))
+                        }
+                    },
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
+        },
+        confirmButton = {
+            Button(onClick = { onLocationSelected(currentPoint) }) {
+                Text("Confirm Location")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
 }
 
 @Composable
